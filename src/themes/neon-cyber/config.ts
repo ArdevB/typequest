@@ -1,0 +1,35 @@
+import type { ThemeConfig } from "../types";
+
+export const neonCyberConfig: ThemeConfig = {
+  id: "neon-cyber",
+  name: "Neon Cyber",
+  description: "Dark synthwave with glowing type and spark trails.",
+  dark: true,
+  colors: {
+    bg: "#0a0614",
+    bgAlt: "#120a24",
+    surface: "#170e2e",
+    border: "#2c1f52",
+    text: "#ece8ff",
+    sub: "#5f5690",
+    main: "#ff2fd1",
+    caret: "#2ef2ff",
+    error: "#ff4d6d",
+    errorExtra: "#a3324a",
+    errorCb: "#ffb000",
+    combo1: "#2ef2ff",
+    combo2: "#ff2fd1",
+    combo3: "#ffd23f",
+    glow: "#ff2fd1",
+  },
+  font: {
+    ui: '"Inter Variable", system-ui, sans-serif',
+    mono: '"JetBrains Mono Variable", ui-monospace, monospace',
+    display: '"Orbitron", "Inter Variable", sans-serif',
+  },
+  renderer: "dom",
+  sounds: "scifi",
+  particles: { colors: ["#2ef2ff", "#ff2fd1", "#ffd23f"], trail: true },
+  music: null,
+  caret: "line",
+};

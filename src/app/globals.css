@@ -1,0 +1,450 @@
+@import "tailwindcss";
+
+/*
+ * Theme colors are CSS variables generated from src/themes/<name>/config.ts
+ * (see themeCss() in registry.ts). Tailwind utilities map onto them here.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-alt: var(--bg-alt);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-sub: var(--sub);
+  --color-main: var(--main);
+  --color-caret: var(--caret);
+  --color-error: var(--error);
+  --font-ui: var(--font-ui-family);
+  --font-mono: var(--font-mono-family);
+  --font-display: var(--font-display-family);
+}
+
+html[data-cb="true"] {
+  --error: var(--error-cb);
+  --error-extra: color-mix(in srgb, var(--error-cb) 65%, var(--bg));
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui-family);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  position: relative;
+  isolation: isolate;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--main) 35%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--main);
+  outline-offset: 2px;
+}
+
+kbd {
+  font-family: var(--font-mono-family);
+  font-size: 0.85em;
+  padding: 0.05em 0.4em;
+  border-radius: 0.3em;
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Neon Cyber backdrop: synthwave sun + grid ---------- */
+html[data-theme="neon-cyber"] body::before,
+html[data-theme="neon-cyber"] body::after {
+  content: "";
+  position: fixed;
+  inset: auto 0 0 0;
+  pointer-events: none;
+  z-index: -1;
+}
+html[data-theme="neon-cyber"] body::before {
+  top: 0;
+  background:
+    radial-gradient(60rem 30rem at 50% 108%, color-mix(in srgb, var(--main) 28%, transparent), transparent 70%),
+    radial-gradient(40rem 20rem at 85% -10%, color-mix(in srgb, var(--caret) 12%, transparent), transparent 70%);
+}
+html[data-theme="neon-cyber"] body::after {
+  height: 38vh;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--main) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--main) 45%, transparent) 1px, transparent 1px);
+  background-size: 64px 40px;
+  transform: perspective(320px) rotateX(62deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to top, black, transparent 85%);
+  opacity: 0.35;
+  animation: grid-scroll 3.5s linear infinite;
+}
+@keyframes grid-scroll {
+  to {
+    background-position: 0 40px;
+  }
+}
+html[data-theme="neon-cyber"] .tq-glow {
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--glow) 70%, transparent),
+    0 0 42px color-mix(in srgb, var(--glow) 40%, transparent);
+}
+
+/* Hide chrome while typing; it comes back on mouse move. */
+.tq-chrome {
+  transition: opacity 0.25s ease;
+}
+html[data-typing="true"] .tq-chrome {
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-typing="true"] {
+  cursor: none;
+}
+
+/* ---------- Typing surface ---------- */
+.tq-surface {
+  position: relative;
+  border-radius: 1rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.tq-words {
+  --line-h: 1.85em;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-mono-family);
+  font-size: clamp(1.3rem, 1rem + 1.4vw, 1.9rem);
+  line-height: var(--line-h);
+  cursor: text;
+  user-select: none;
+  transition: filter 0.2s ease, opacity 0.2s ease;
+}
+.tq-words-skeleton {
+  height: 8rem;
+}
+.tq-surface[data-focused="false"] .tq-words {
+  filter: blur(5px);
+  opacity: 0.5;
+}
+
+.tq-words-inner {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.6em;
+  transition: transform 0.16s ease-out;
+}
+html[data-rm="true"] .tq-words-inner {
+  transition: none;
+}
+
+.tq-word {
+  display: flex;
+  height: var(--line-h);
+  position: relative;
+  border-bottom: 2px solid transparent;
+}
+.tq-word[data-err="true"] {
+  border-bottom-color: color-mix(in srgb, var(--error) 70%, transparent);
+}
+
+.tq-char {
+  color: var(--sub);
+}
+.tq-char[data-s="correct"] {
+  color: var(--text);
+}
+.tq-char[data-s="incorrect"] {
+  color: var(--error);
+}
+.tq-char[data-s="extra"] {
+  color: var(--error-extra);
+}
+.tq-char[data-s="missed"] {
+  color: var(--sub);
+}
+/* Colorblind mode: errors are also marked by shape, not just color. */
+html[data-cb="true"] .tq-char[data-s="incorrect"],
+html[data-cb="true"] .tq-char[data-s="extra"] {
+  text-decoration: underline 2px;
+  text-underline-offset: 4px;
+}
+
+/* Combo tiers shift the caret color (set by theme effects). */
+.tq-surface {
+  --caret-now: var(--caret);
+}
+.tq-surface[data-combo-tier="1"] {
+  --caret-now: var(--combo-1);
+}
+.tq-surface[data-combo-tier="2"] {
+  --caret-now: var(--combo-2);
+}
+.tq-surface[data-combo-tier="3"] {
+  --caret-now: var(--combo-3);
+}
+
+.tq-caret {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.1em;
+  min-width: 2px;
+  height: 1.15em;
+  margin-top: calc((var(--line-h) - 1.15em) / 2);
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--caret-now);
+  transition:
+    transform 0.08s cubic-bezier(0.2, 0.7, 0.3, 1),
+    background-color 0.3s ease;
+  will-change: transform;
+}
+.tq-caret[data-style="block"] {
+  width: 0.6em;
+  opacity: 0.45;
+}
+.tq-caret[data-style="underline"] {
+  width: 0.6em;
+  height: 2px;
+  margin-top: calc(var(--line-h) - 0.35em);
+}
+.tq-caret[data-status="idle"] {
+  animation: caret-blink 1s ease-in-out infinite;
+}
+.tq-surface[data-focused="false"] .tq-caret {
+  opacity: 0;
+}
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+html[data-rm="true"] .tq-caret {
+  transition: background-color 0.3s ease;
+}
+
+html[data-theme="neon-cyber"] .tq-caret {
+  box-shadow:
+    0 0 8px var(--caret-now),
+    0 0 20px color-mix(in srgb, var(--caret-now) 60%, transparent);
+}
+html[data-theme="neon-cyber"] .tq-surface[data-combo-tier="2"] .tq-word.active .tq-char[data-s="correct"],
+html[data-theme="neon-cyber"] .tq-surface[data-combo-tier="3"] .tq-word.active .tq-char[data-s="correct"] {
+  text-shadow: 0 0 10px var(--caret-now);
+}
+
+.tq-combo {
+  font-family: var(--font-display-family);
+  font-weight: 700;
+  color: var(--caret-now);
+  transition:
+    opacity 0.2s ease,
+    color 0.3s ease;
+}
+.tq-combo[data-visible="false"] {
+  opacity: 0;
+}
+html[data-theme="neon-cyber"] .tq-combo {
+  text-shadow: 0 0 14px var(--caret-now);
+}
+
+/* The real input sits under the words, invisible. 16px stops iOS zoom. */
+.tq-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+  caret-color: transparent;
+}
+
+.tq-focus-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ---------- Results ---------- */
+.tq-big {
+  font-size: clamp(3.5rem, 2rem + 5vw, 5.5rem);
+  line-height: 1;
+  font-weight: 600;
+}
+html[data-theme="neon-cyber"] .tq-big {
+  text-shadow: 0 0 24px color-mix(in srgb, var(--main) 55%, transparent);
+}
+
+.tq-stamp {
+  --ring: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 9999px;
+  border: 4px double var(--stamp, var(--main));
+  color: var(--stamp, var(--main));
+  transform: rotate(-12deg);
+}
+.tq-stamp::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--stamp, var(--main));
+  opacity: calc(1 - var(--ring));
+  transform: scale(calc(1 + var(--ring) * 0.6));
+}
+.tq-stamp[data-grade="S"] {
+  --stamp: var(--combo-3);
+}
+.tq-stamp[data-grade="A"] {
+  --stamp: var(--main);
+}
+.tq-stamp[data-grade="B"] {
+  --stamp: var(--caret);
+}
+.tq-stamp[data-grade="C"] {
+  --stamp: var(--sub);
+}
+.tq-stamp-letter {
+  font-family: var(--font-display-family);
+  font-weight: 900;
+  font-size: 3rem;
+  line-height: 1;
+}
+.tq-stamp-label {
+  position: absolute;
+  bottom: 0.9rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+html[data-theme="neon-cyber"] .tq-stamp {
+  filter: drop-shadow(0 0 10px var(--stamp, var(--main)));
+}
+
+[data-tone="pb"] .tq-record {
+  color: var(--combo-3);
+}
+[data-tone="off"] .tq-record,
+[data-tone="first"] .tq-record {
+  color: var(--text);
+}
+[data-tone="void"] .tq-record {
+  color: var(--error);
+}
+
+/* ---------- Buttons, cards ---------- */
+.tq-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--surface);
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.tq-btn:hover {
+  border-color: var(--main);
+  transform: translateY(-1px);
+}
+.tq-btn:active {
+  transform: translateY(1px);
+}
+.tq-btn-primary {
+  background: var(--main);
+  border-color: var(--main);
+  color: var(--bg);
+  font-weight: 600;
+}
+.tq-btn-primary kbd {
+  background: color-mix(in srgb, var(--bg) 20%, transparent);
+  border-color: transparent;
+  color: inherit;
+}
+html[data-theme="neon-cyber"] .tq-btn-primary {
+  box-shadow: 0 0 22px color-mix(in srgb, var(--main) 55%, transparent);
+}
+
+.tq-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  color: var(--sub);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.tq-icon-btn:hover,
+.tq-icon-btn[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--bg-alt);
+}
+
+.tq-card {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: 1rem;
+  padding: 1.1rem;
+  backdrop-filter: blur(6px);
+}
+.tq-card[data-ready="true"] {
+  border-color: var(--main);
+}
+
+/* Landing demo line: types itself. */
+.tq-demo {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--sub);
+}
+.tq-demo-typed {
+  display: inline-block;
+  vertical-align: bottom;
+  overflow: hidden;
+  color: var(--text);
+  border-right: 2px solid var(--caret);
+  width: 19ch;
+  animation: demo-type 2.6s steps(19) 0.4s both;
+}
+@keyframes demo-type {
+  from {
+    width: 0;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+html[data-rm="true"] *,
+html[data-rm="true"] *::before,
+html[data-rm="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+}
+html[data-rm="true"] .tq-caret[data-status="idle"] {
+  animation: none;
+}

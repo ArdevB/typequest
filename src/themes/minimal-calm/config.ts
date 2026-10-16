@@ -1,0 +1,35 @@
+import type { ThemeConfig } from "../types";
+
+export const minimalCalmConfig: ThemeConfig = {
+  id: "minimal-calm",
+  name: "Minimal Calm",
+  description: "Warm paper, quiet motion. Also used when reduced motion is on.",
+  dark: false,
+  colors: {
+    bg: "#f3efe6",
+    bgAlt: "#ebe5d8",
+    surface: "#fbf9f4",
+    border: "#ddd5c4",
+    text: "#2f2b25",
+    sub: "#a59d8d",
+    main: "#5f8a6a",
+    caret: "#5f8a6a",
+    error: "#c0504a",
+    errorExtra: "#d9928d",
+    errorCb: "#b5651d",
+    combo1: "#5f8a6a",
+    combo2: "#4f7aa3",
+    combo3: "#b08a3e",
+    glow: "#5f8a6a",
+  },
+  font: {
+    ui: '"Inter Variable", system-ui, sans-serif',
+    mono: '"JetBrains Mono Variable", ui-monospace, monospace',
+    display: '"Inter Variable", system-ui, sans-serif',
+  },
+  renderer: "dom",
+  sounds: "typewriter",
+  particles: null,
+  music: null,
+  caret: "line",
+};
