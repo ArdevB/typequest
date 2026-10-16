@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { StopOnError, TimeSeconds, WordCount } from "@/engine";
+import type { LayoutId, StopOnError, TimeSeconds, WordCount } from "@/engine";
 import type { SoundPackId } from "@/lib/sound";
 import { STORAGE_KEYS, safeStorage } from "@/lib/storage";
 import { DEFAULT_THEME } from "@/themes/registry";
@@ -16,6 +16,10 @@ export interface SettingsState {
   /** "theme" = use the theme's default pack. */
   soundPack: SoundPackId | "theme";
   volume: number;
+  /** Game sound effects (hits, explosions). */
+  sfxVolume: number;
+  musicOn: boolean;
+  musicVolume: number;
   mode: SpeedMode;
   punctuation: boolean;
   numbers: boolean;
@@ -24,6 +28,8 @@ export interface SettingsState {
   colorblind: boolean;
   showLiveWpm: boolean;
   /** Keeby, the mascot, on the typing screens. */
+  /** Keyboard layout for lessons, the finger guide and practice. */
+  layout: LayoutId;
   mascot: boolean;
   mascotOutfit: MascotOutfit;
   /** Unlockables the player has already been told about. */
@@ -38,6 +44,9 @@ export const DEFAULT_SETTINGS: SettingsData = {
   soundOn: true,
   soundPack: "theme",
   volume: 0.45,
+  sfxVolume: 0.7,
+  musicOn: false,
+  musicVolume: 0.35,
   mode: { kind: "time", seconds: 30 },
   punctuation: false,
   numbers: false,
@@ -45,6 +54,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   motion: "system",
   colorblind: false,
   showLiveWpm: true,
+  layout: "qwerty",
   mascot: true,
   mascotOutfit: "none",
   seenUnlocks: [],

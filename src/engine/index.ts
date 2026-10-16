@@ -6,4 +6,7 @@ export { wordSource, fixedSource, weakKeyWeights, drillText, type WordSourceOpti
 export { replayRun, replayDetailed, type ReplayInput, type ReplayOutcome } from "./replay";
 export { createRng, hashSeed } from "./rng";
 export { QWERTY } from "./layouts/qwerty";
+export { DVORAK } from "./layouts/dvorak";
+export { COLEMAK } from "./layouts/colemak";
+export { LAYOUTS, LAYOUT_IDS, getLayout, translateKeys, type LayoutId } from "./layouts";
 export type { KeyboardLayout, KeyDef, Finger, Hand } from "./layouts/types";

@@ -2,7 +2,8 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { LESSONS, UNITS, lessonsInUnit, type Lesson } from "@/lessons/catalog";
+import { UNITS, lessonsFor, lessonsInUnit, type Lesson } from "@/lessons/catalog";
+import { useSettings } from "@/stores/settingsStore";
 import { currentLessonId, isUnlocked } from "@/lessons/progress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useHydrated } from "@/stores/hydration";
@@ -33,6 +34,8 @@ export function LessonPath() {
   const ready = useHydrated((s) => s.ready);
   const progress = useLessons((s) => s.progress);
   const reducedMotion = useReducedMotion();
+  const layoutId = useSettings((s) => s.layout);
+  const LESSONS = lessonsFor(layoutId);
   const current = ready ? currentLessonId(progress) : LESSONS[0]?.id ?? null;
   const totalStars = Object.values(progress).reduce((n, p) => n + p.stars, 0);
   const currentLesson = LESSONS.find((l) => l.id === current);
@@ -58,7 +61,7 @@ export function LessonPath() {
       </header>
 
       {UNITS.map((unit) => {
-        const lessons = lessonsInUnit(unit.id);
+        const lessons = lessonsInUnit(unit.id, layoutId);
         const points = nodePoints(lessons.length);
         const height = (points.at(-1)?.y ?? 0) + 60;
         const unitStars = lessons.reduce((n, l) => n + (progress[l.id]?.stars ?? 0), 0);

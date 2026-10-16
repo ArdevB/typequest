@@ -4,9 +4,16 @@
 --
 -- After running this, run the files in supabase/migrations again, in order.
 
+-- Phase 7
+drop function if exists public.record_chaos(uuid, jsonb, integer);
+drop function if exists public.chaos_leaderboard(integer);
+drop function if exists public.record_practice(uuid, jsonb, integer);
+drop function if exists public.weekly_boss_leaderboard(bigint, integer);
+
 -- Phase 5
 drop function if exists public.record_game(uuid, jsonb, integer);
 drop function if exists public.game_leaderboard(text, integer);
+drop table if exists public.chaos_runs cascade;
 drop table if exists public.game_runs cascade;
 
 -- Phase 4

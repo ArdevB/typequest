@@ -74,3 +74,25 @@ describe("rating and unlocks", () => {
     expect(currentLessonId(progress)).toBe("home-dk");
   });
 });
+
+describe("other keyboard layouts", async () => {
+  const { lessonsFor, getLesson } = await import("./catalog");
+  const { DVORAK, COLEMAK, translateKeys } = await import("@/engine");
+  it("maps QWERTY positions onto Dvorak and Colemak", () => {
+    expect(translateKeys("asdf jkl;", DVORAK)).toBe("aoeu htns");
+    expect(translateKeys("asdf jkl;", COLEMAK)).toBe("arst neio");
+    expect(translateKeys("Hello!", COLEMAK)).toBe("Hfiiy!");
+    expect(DVORAK.byChar.get("u")?.bump).toBe(true);
+    expect(COLEMAK.byChar.get("n")?.finger).toBe("index");
+  });
+  it("teaches the same fingers with the layout's keys", () => {
+    const d = getLesson("home-fj", "dvorak")!;
+    expect(d.newKeys).toBe("uh");
+    expect(d.title).toBe("U and H");
+    expect(d.intro).toContain("U and H");
+    expect(d.build(3).replace(/ /g, "")).toMatch(/^[uh]+$/);
+    const words = getLesson("home-words", "colemak")!.build(5).split(" ");
+    for (const w of words) expect(w).toMatch(/^[arstdhneio']+$/);
+    expect(lessonsFor("dvorak").map((l) => l.id)).toEqual(lessonsFor("qwerty").map((l) => l.id));
+  });
+});

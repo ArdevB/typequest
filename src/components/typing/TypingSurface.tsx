@@ -9,6 +9,7 @@ import {
   type StopOnError,
   type TestMode,
   type TypingEngine,
+  type WordSource,
 } from "@/engine";
 import { createParticleLayer, type ParticleLayer } from "@/lib/particles";
 import { sound } from "@/lib/sound";
@@ -26,8 +27,8 @@ export interface TypingSurfaceProps {
   seed?: number;
   /** Weight words toward these keys (Weak Key Hunt). */
   keyWeights?: Readonly<Record<string, number>>;
-  /** Rewrites generated words before they're shown (chaos modifiers). Must be stable for a run. */
-  transformWords?: (words: string[]) => string[];
+  /** Supplies the words instead of the default generator (chaos runs). Called once per run; keep it memoized. */
+  makeSource?: () => WordSource;
   /** Blind mode: hide right/wrong feedback. */
   blind?: boolean;
   /** Bump to restart. */
@@ -51,7 +52,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
     numbers = false,
     seed,
     keyWeights,
-    transformWords,
+    makeSource,
     blind = false,
     runKey,
     themeId,
@@ -88,12 +89,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
     const e = createTypingEngine({
       mode,
-      source: transformWords
-        ? (() => {
-            const src = wordSource({ punctuation, numbers, seed, keyWeights });
-            return { take: (n: number) => transformWords(src.take(n)) };
-          })()
-        : wordSource({ punctuation, numbers, seed, keyWeights }),
+      source: makeSource ? makeSource() : wordSource({ punctuation, numbers, seed, keyWeights }),
       stopOnError,
     });
     const renderer = createWordsRenderer(wordsEl, e, getTheme(themeId).config.caret);
@@ -163,7 +159,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       onEngineRef.current?.(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mode is tracked by kind + value
-  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, seed, keyWeights, transformWords, themeId]);
+  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, seed, keyWeights, makeSource, themeId]);
 
   // Theme effects: re-attached when the theme or motion preference changes.
   useEffect(() => {

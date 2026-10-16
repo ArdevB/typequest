@@ -21,7 +21,8 @@ import { createWordsRenderer } from "@/components/typing/wordsRenderer";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { beginSave, saveGame } from "@/lib/api/client";
 import { celebrate } from "@/lib/confetti";
-import { sound } from "@/lib/sound";
+import { sfx, sound } from "@/lib/sound";
+import { useMusicScene } from "@/stores/musicScene";
 import { useGames } from "@/stores/gamesStore";
 import { useHydrated } from "@/stores/hydration";
 import { useSettings } from "@/stores/settingsStore";
@@ -103,6 +104,13 @@ export function GamePlayer({ game }: { game: GameInfo }) {
       setRunKey((k) => k + 1);
     }
   }, [game.id]);
+
+  // Battle music and game sound effects while a game is open.
+  useEffect(() => {
+    void sfx.preload();
+    useMusicScene.getState().set("battle");
+    return () => useMusicScene.getState().set("theme");
+  }, []);
 
   const restart = useCallback(() => {
     // The Weekly Boss and a friend's race always use the same words.
@@ -317,13 +325,21 @@ function GameStage({
       }
     }, 100);
 
-    let endTimer: ReturnType<typeof setTimeout> | undefined;
+    // When the sim ends, let the closing moment play: at least a short delay, and for
+    // renderers with a cinematic (the duel's K.O.), until it reports it's done.
+    let overAt: number | null = null;
     let ended = false;
+    let renderDone: (() => boolean) | null = null;
+    const minDelay = reducedMotion ? 600 : (END_DELAY[game.id] ?? 1400);
     const checkEnd = () => {
       if (ended || !live.sim.over) return;
+      const now = performance.now();
+      overAt ??= now;
+      const waited = now - overAt;
+      const cinematicDone = renderDone ? renderDone() : true;
+      if (waited < (renderDone ? Math.min(minDelay, 900) : minDelay) || (!cinematicDone && waited < 9000)) return;
       ended = true;
-      const outcome = live.sim.outcome();
-      endTimer = setTimeout(() => onDoneRef.current(outcome, log, live.sim), reducedMotion ? 600 : (END_DELAY[game.id] ?? 1400));
+      onDoneRef.current(live.sim.outcome(), log, live.sim);
     };
 
     void (async () => {
@@ -345,7 +361,12 @@ function GameStage({
         }
         app.canvas.setAttribute("aria-hidden", "true");
         host.appendChild(app.canvas);
-        const renderer = render.createRenderer(game.id, { PIXI, app, colors: render.readColors(), reducedMotion }, live.sim);
+        const renderer = render.createRenderer(
+          game.id,
+          { PIXI, app, colors: render.readColors(), reducedMotion, sfx: (name, o) => sfx.play(name, o) },
+          live.sim,
+        );
+        if (renderer.finished) renderDone = () => renderer.finished!();
         const frame = () => {
           live.tick();
           renderer.update(app.ticker.deltaMS);
@@ -377,7 +398,6 @@ function GameStage({
       cancelled = true;
       clearInterval(hudTimer);
       clearInterval(fallback);
-      clearTimeout(endTimer);
       offs.forEach((off) => off());
       detachInput();
       strip?.destroy();

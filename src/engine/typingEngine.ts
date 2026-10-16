@@ -35,6 +35,8 @@ export interface TypingEngine {
   finish(): void;
   /** Advance timers. Called automatically unless autoTick is false. */
   tick(): void;
+  /** Time mode: takes `ms` off the clock (chaos Heat Timer). Ends the run if time is up. */
+  penalize(ms: number): void;
   destroy(): void;
 
   getSnapshot(): EngineSnapshot;
@@ -109,8 +111,9 @@ export function createTypingEngine(initial: EngineOptions): TypingEngine {
   let timer: ReturnType<typeof setInterval> | null = null;
   let result: RunResult | null = null;
 
+  let timePenalty = 0;
   const limitMs = (): number | null =>
-    opts.mode.kind === "time" ? opts.mode.seconds * 1000 : null;
+    opts.mode.kind === "time" ? Math.max(0, opts.mode.seconds * 1000 - timePenalty) : null;
 
   const elapsed = (): number => {
     if (status === "idle") return 0;
@@ -422,6 +425,12 @@ export function createTypingEngine(initial: EngineOptions): TypingEngine {
     },
 
     getTyped: (w) => typed[w] ?? "",
+    penalize(ms: number) {
+      if (status !== "running" || opts.mode.kind !== "time" || ms <= 0) return;
+      timePenalty += ms;
+      const lim = limitMs();
+      if (lim !== null && elapsed() >= lim) finishAt(lim);
+    },
     getWords: () => words,
     getLog: () => log,
     getHits: () => hits,

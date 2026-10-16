@@ -2,7 +2,7 @@
 
 A gamified typing trainer — from learning hand placement to high-speed tests.
 
-**Status:** Phase 6 (all phases done) — Speed Test, Learn, Practice, accounts/XP/leaderboards, challenges/achievements/streaks, Pixi game modes with a Weekly Boss and friend ghost races, Chaos modifiers, unlockable themes and Keeby the mascot.
+**Status:** Phase 7 — Speed Test, Learn, Practice, accounts/XP/leaderboards, challenges/achievements/streaks, Pixi game modes with a Weekly Boss and friend ghost races, Chaos modifiers, unlockable themes, Keeby the mascot, music and game sound, Dvorak/Colemak, and online chaos/practice.
 
 ## Run it
 
@@ -114,8 +114,28 @@ and `weekly_boss_leaderboard`).
   specific tip after each test. Can be turned off in Settings; reduced motion stills it.
 - Polish: active nav link, mobile menu, 404 page, landing page links to everything.
 
+## Phase 7: fight scene, sound, layouts, online chaos & practice
+
+Database: run `supabase/migrations/20261016050000_chaos_practice.sql` (chaos runs + leaderboard, practice key stats + XP).
+
+- **Stickman Duel** (`src/games/render/duel.ts`): outlined fighters with headband ribbons, a rooftop at night with
+  parallax city, rain and a lamp; hit-stop, manga impact frames, spark stars, damage numbers and a combo counter;
+  a tracking camera; varied moves (jab/cross, kick/high kick/sweep, uppercut, spin kick, flying-kick finisher);
+  a ragdoll K.O. with bounces. New rule in the sim (`src/games/duel.ts`): finish a word just as the rival strikes
+  (it telegraphs with a "!") to **parry** — no damage, and you riposte. Results wait for the K.O. scene to finish.
+- **Sound** (`scripts/make-audio.py` → `public/sounds/sfx`, `public/music`): every effect and music loop is
+  synthesized from code (no samples). Music per theme plus a battle track in games (off by default; Settings →
+  Music & game effects). Game effects: punches, parries, KO bell, lasers, explosions, slams, roars, engine.
+  Re-generate with `python3 scripts/make-audio.py` (needs numpy, scipy, ffmpeg).
+- **Layouts** (`src/engine/layouts/`): Dvorak and Colemak are built on QWERTY's physical keys, so fingers stay the
+  same. Lessons teach the keys at the same positions (Dvorak's first lesson is U and H), and the keyboard guide,
+  hands and practice follow the layout chosen in Settings. Lesson saves carry the layout for server checks.
+- **Online chaos**: `/api/chaos` rebuilds the words (seed + text modifiers) and the rules (`onError`; the Heat Timer
+  now uses `engine.penalize()`), replays the run and saves the score with XP. "Chaos masters" board on `/chaos`.
+- **Online practice**: `/api/practice` rebuilds the drill (`src/practice/drills.ts`), replays it, merges the key
+  stats into the account and gives a little XP.
+
 ## Ideas queued for later phases
 
-- Dvorak / Colemak layouts (the engine and keyboard already take a layout).
-- Server-side chaos leaderboard and XP for chaos runs and practice drills.
-- Background music per theme.
+- Deploy to Vercel (env vars, Supabase auth redirect URLs, the daily-challenge cron).
+- More layouts (AZERTY, QWERTZ) — the remap helper makes them a few lines each.

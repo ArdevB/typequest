@@ -50,17 +50,22 @@ export function renderBossBattle(ctx: RenderCtx, sim: BossBattleSim): GameRender
       for (const fx of sim.drainFx()) {
         if (fx.type === "bossHit") {
           projectiles.push({ p: 0, crit: Boolean(fx.crit) });
+          ctx.sfx?.("laser", { volume: 0.4, rate: fx.crit ? 0.8 : 1 });
         } else if (fx.type === "playerHit") {
           lunge = 1;
           hurt = 1;
           shake.kick(fx.kind === "slam" ? 16 : 7);
+          ctx.sfx?.(fx.kind === "slam" ? "heavy" : "hit", { rate: 0.8 });
           floaters.add(`-${fx.damage as number}`, W() * 0.5, H() * 0.88, colors.error, 26);
         } else if (fx.type === "phase") {
           shake.kick(12);
           particles.burst(cx, cy, { count: 80, colors: [pc, colors.gold], speed: 420, life: 1.1, size: 4, gravity: 0 });
           floaters.add(fx.phase === 3 ? "ENRAGED!" : "IT'S ANGRY", cx, cy - r * 1.4, pc, 30);
+          ctx.sfx?.("roar");
         } else if (fx.type === "bossDefeated") {
           dead = 0.001;
+          ctx.sfx?.("ko");
+          ctx.sfx?.("explode");
           particles.burst(cx, cy, { count: 220, colors: [pc, colors.gold, colors.caret, "#ffffff"], speed: 620, life: 1.8, size: 5, gravity: 120 });
           shake.kick(24);
         }
@@ -88,6 +93,7 @@ export function renderBossBattle(ctx: RenderCtx, sim: BossBattleSim): GameRender
             life: 0.6,
             size: 3,
           });
+          ctx.sfx?.(pr.crit ? "heavy" : "hit", { volume: pr.crit ? 0.8 : 0.5, rate: 1.1 });
           return false;
         }
         return true;

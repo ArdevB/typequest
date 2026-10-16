@@ -91,7 +91,7 @@ export interface LessonCheck {
 
 /** Validates a lesson attempt: rebuilds the lesson text from its seed and replays the log. */
 export function validateLesson(p: LessonPayload): Validation<LessonCheck> {
-  const lesson = getLesson(p.lessonId);
+  const lesson = getLesson(p.lessonId, p.layout ?? "qwerty");
   if (!lesson) return { ok: false, reason: "unknown lesson" };
   const logProblem = checkLog(p.log);
   if (logProblem) return { ok: false, reason: logProblem };

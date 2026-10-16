@@ -1,5 +1,5 @@
 import { fixedSource } from "./lessonGen";
-import { createTypingEngine } from "./typingEngine";
+import { createTypingEngine, type TypingEngine } from "./typingEngine";
 import { KeyKind, type Keystroke, type RunResult, type StopOnError, type TestMode, type WordSource } from "./types";
 
 export interface ReplayInput {
@@ -10,6 +10,8 @@ export interface ReplayInput {
   /** Regenerates the words (e.g. a seeded wordSource) instead of trusting a stored list. */
   source?: WordSource;
   stopOnError?: StopOnError;
+  /** Hooks rules onto the replay engine (chaos modifiers) exactly as the live run had them. */
+  attach?: (engine: TypingEngine) => void;
 }
 
 export interface ReplayOutcome {
@@ -32,6 +34,7 @@ export function replayDetailed(input: ReplayInput): ReplayOutcome {
     autoTick: false,
     now: () => clock,
   });
+  input.attach?.(engine);
 
   let finishedNaturally = false;
   for (const [t, key, kind] of input.log) {

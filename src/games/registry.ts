@@ -44,7 +44,7 @@ export const GAMES: readonly GameInfo[] = [
     id: "stickman-duel",
     name: "Stickman Duel",
     tagline: "Every correct word lands a blow. Make it cinematic.",
-    howTo: "Short words jab, longer ones kick and uppercut, every 5th word in a row is a spinning special. Mistakes open you up to a counter.",
+    howTo: "Short words jab, longer ones kick and uppercut, every 5th clean word is a special. Finish a word just as the rival strikes (watch for the !) to parry. Mistakes open you up to a counter.",
     words: 300,
   },
   {

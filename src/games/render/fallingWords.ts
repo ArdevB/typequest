@@ -34,6 +34,7 @@ export function renderFallingWords(ctx: RenderCtx, sim: FallingWordsSim): GameRe
   const flash = new PIXI.Graphics();
   stage.addChild(flash);
   let flashAlpha = 0;
+  let lastLevel = 1;
 
   const labels = new Map<number, { label: WordLabel; box: Graphics; root: Container }>();
   let laserList: { x: number; y: number; life: number }[] = [];
@@ -127,17 +128,26 @@ export function renderFallingWords(ctx: RenderCtx, sim: FallingWordsSim): GameRe
       for (const fx of sim.drainFx()) {
         if (fx.type === "shot" && activePos) {
           laserList.push({ x: activePos.px, y: activePos.py, life: 0.12 });
+          ctx.sfx?.("laser", { volume: 0.35, rate: 0.9 + Math.random() * 0.25 });
           particles.burst(activePos.px, activePos.py, { count: 4, colors: [colors.caret], speed: 120, life: 0.25, size: 2, gravity: 0 });
         } else if (fx.type === "destroy") {
           const { px, py } = pos(fx.x as number, fx.y as number);
           particles.burst(px, py + 14, { count: reducedMotion ? 12 : 40, colors: [colors.main, colors.caret, colors.gold], speed: 320, life: 0.8, size: 3.5 });
           floaters.add(`+${fx.points as number}`, px, py, colors.gold);
           shake.kick(3);
+          ctx.sfx?.("explode", { volume: 0.55, rate: 1.1 + Math.random() * 0.2 });
+          const lvl = sim.state.level;
+          if (lvl > lastLevel) {
+            lastLevel = lvl;
+            ctx.sfx?.("levelup", { volume: 0.7 });
+            floaters.add(`LEVEL ${lvl}`, W() / 2, H() * 0.4, colors.main, 34);
+          }
         } else if (fx.type === "crash") {
           const { px } = pos(fx.x as number, 1);
           particles.burst(px, H() - GROUND, { count: 50, colors: [colors.error, colors.gold], speed: 380, life: 0.9, size: 4, spread: Math.PI, angle: -Math.PI / 2 });
           shake.kick(10);
           flashAlpha = 0.35;
+          ctx.sfx?.("crash");
         } else if (fx.type === "miss") {
           shake.kick(1.5);
         }

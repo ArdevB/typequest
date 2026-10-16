@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { QWERTY, drillText, weakKeyWeights, wordSource, type PerKeyStat, type RunResult, type TestMode, type TypingEngine } from "@/engine";
-import { ENGLISH_COMMON } from "@/engine/words/english-common";
-import { LESSON_WORDS } from "@/engine/words/english-lessons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getLayout, weakKeyWeights, type PerKeyStat, type RunResult, type TestMode, type TypingEngine } from "@/engine";
+import { buildDrill, type Drill } from "@/practice/drills";
+import { ProgressStrip, type SaveState } from "@/components/progress/ProgressStrip";
+import { beginSave, savePractice } from "@/lib/api/client";
 import { KeyboardPanel } from "@/components/keyboard/KeyboardPanel";
 import { FINGER_NAMES, fingerOf } from "@/components/keyboard/geometry";
 import { VirtualKeyboard } from "@/components/keyboard/VirtualKeyboard";
@@ -19,7 +20,7 @@ import { useSettings } from "@/stores/settingsStore";
 
 /** "Left index finger" for a letter key. */
 function fingerName(key: string): string {
-  const def = QWERTY.byChar.get(key);
+  const def = getLayout(useSettings.getState().layout).byChar.get(key);
   return def ? FINGER_NAMES[fingerOf(def)].toLowerCase() : "finger";
 }
 
@@ -64,44 +65,16 @@ export function analyseKeys(stats: Readonly<Record<string, PerKeyStat>>): KeyRow
     .sort((a, b) => b.weight - a.weight);
 }
 
-type Drill = { kind: "mix"; keys: string[] } | { kind: "key"; key: string };
 type View =
   | { kind: "overview" }
   | { kind: "typing"; drill: Drill }
-  | { kind: "done"; drill: Drill; result: RunResult };
-
-/** Home-row neighbours mixed into single-key drills so the hand stays anchored. */
-const REVIEW = "asdfjkl";
-
-/**
- * Real words containing `key`: common words first, topped up from the larger
- * list for rare letters (q, x, z, j…) that common words hardly use.
- */
-function wordsWith(key: string): string[] {
-  const common = ENGLISH_COMMON.filter((w) => w.includes(key));
-  if (common.length >= 25) return common;
-  const more = LESSON_WORDS.filter((w) => w.includes(key) && w.length <= 7);
-  return [...new Set([...common, ...more])];
-}
-
-function buildDrill(drill: Drill, seed: number): string {
-  if (drill.kind === "mix") {
-    // A warm-up group per weak key, then real words that contain them (and ordinary words around them).
-    const keys = drill.keys.slice(0, 4);
-    const warmup = keys.flatMap((k, i) => drillText({ focus: k, review: REVIEW.replace(k, ""), groups: 2, maxLen: 4, seed: seed + i }));
-    const pool = [...new Set([...keys.flatMap(wordsWith), ...ENGLISH_COMMON])];
-    const words = wordSource({ seed, pool, keyWeights: Object.fromEntries(keys.map((k) => [k, 10])) }).take(26);
-    return [...warmup, ...words].join(" ");
-  }
-  const groups = drillText({ focus: drill.key, review: REVIEW.replace(drill.key, ""), groups: 6, maxLen: 4, seed });
-  const words = wordSource({ seed, pool: wordsWith(drill.key) }).take(16);
-  return [...groups, ...words].join(" ");
-}
+  | { kind: "done"; drill: Drill; result: RunResult; save: SaveState };
 
 export function PracticeView() {
   const ready = useHydrated((s) => s.ready);
   const themeId = useSettings((s) => s.themeId);
   const showLiveWpm = useSettings((s) => s.showLiveWpm);
+  const layoutId = useSettings((s) => s.layout);
   const reducedMotion = useReducedMotion();
   const addPracticeStats = useHistory((s) => s.addPracticeStats);
   const { stats, source } = useKeyStats();
@@ -128,25 +101,37 @@ export function PracticeView() {
     return h;
   }, [rows, heatBy]);
 
+  const drillRef = useRef<Drill | null>(null);
   const start = useCallback((drill: Drill) => {
+    drillRef.current = drill;
     setSeed(newSeed());
     setRunKey((k) => k + 1);
     setView({ kind: "typing", drill });
   }, []);
 
   const startMix = useCallback(() => {
-    start({ kind: "mix", keys: weakest.map((r) => r.key) });
+    if (weakest.length) start({ kind: "mix", keys: weakest.map((r) => r.key) });
   }, [weakest, start]);
 
   const drill = view.kind === "overview" ? null : view.drill;
-  const mode = useMemo<TestMode>(() => ({ kind: "text", text: drill ? buildDrill(drill, seed) : "" }), [drill, seed]);
+  const mode = useMemo<TestMode>(() => ({ kind: "text", text: drill ? buildDrill(drill, seed, layoutId) : "" }), [drill, seed, layoutId]);
 
   const onFinish = useCallback(
     (result: RunResult) => {
-      if (result.flags.pasteAttempts === 0) addPracticeStats(result.perKey);
-      setView((v) => (v.kind === "typing" ? { kind: "done", drill: v.drill, result } : v));
+      const valid = result.flags.pasteAttempts === 0 && result.accuracy >= 50;
+      if (valid) addPracticeStats(result.perKey);
+      const drill = drillRef.current;
+      if (!drill) return;
+      const save = beginSave({
+        valid,
+        send: () => savePractice({ drill, seed, layout: layoutId, log: [...result.log] }),
+        // Guests keep drill stats in this browser only.
+        queue: () => {},
+        update: (next) => setView((cur) => (cur.kind === "done" && cur.result === result ? { ...cur, save: next } : cur)),
+      });
+      setView({ kind: "done", drill, result, save });
     },
-    [addPracticeStats],
+    [addPracticeStats, seed, layoutId],
   );
 
   useEffect(() => {
@@ -204,7 +189,7 @@ export function PracticeView() {
                 </div>
                 {enoughData ? (
                   <>
-                    <VirtualKeyboard heat={heat} ariaLabel={heatBy === "errors" ? "Mistake rate per key" : "Speed per key"} />
+                    <VirtualKeyboard layout={getLayout(layoutId)} heat={heat} ariaLabel={heatBy === "errors" ? "Mistake rate per key" : "Speed per key"} />
                     <p className="mt-3 flex items-center gap-2 text-xs text-sub">
                       <span className="tq-heat-legend" aria-hidden="true" /> cool = fine, hot = needs work
                     </p>
@@ -292,7 +277,7 @@ export function PracticeView() {
 
         {view.kind === "done" && (
           <motion.section key={`done-${runKey}`} {...fade} transition={{ duration: 0.2 }} className="py-8">
-            <DrillResults drill={view.drill} result={view.result} rows={rows} onAgain={() => start(view.drill)} onBack={() => setView({ kind: "overview" })} />
+            <DrillResults drill={view.drill} result={view.result} save={view.save} reducedMotion={reducedMotion} rows={rows} onAgain={() => start(view.drill)} onBack={() => setView({ kind: "overview" })} />
           </motion.section>
         )}
       </AnimatePresence>
@@ -328,7 +313,23 @@ function DrillHeader({ drill, onBack }: { drill: Drill; onBack: () => void }) {
   );
 }
 
-function DrillResults({ drill, result, rows, onAgain, onBack }: { drill: Drill; result: RunResult; rows: KeyRow[]; onAgain: () => void; onBack: () => void }) {
+function DrillResults({
+  drill,
+  result,
+  save,
+  reducedMotion,
+  rows,
+  onAgain,
+  onBack,
+}: {
+  drill: Drill;
+  result: RunResult;
+  save: SaveState;
+  reducedMotion: boolean;
+  rows: KeyRow[];
+  onAgain: () => void;
+  onBack: () => void;
+}) {
   const keys = drill.kind === "mix" ? drill.keys : [drill.key];
   const thisRun = analyseKeys(result.perKey);
   return (
@@ -375,7 +376,10 @@ function DrillResults({ drill, result, rows, onAgain, onBack }: { drill: Drill; 
           })}
         </tbody>
       </table>
-      <p className="mt-3 text-xs text-sub">Drills update your key stats in this browser. They don&apos;t count as speed tests.</p>
+      <p className="mt-3 text-xs text-sub">Drills update your key stats (and your account&apos;s, when signed in). They don&apos;t count as speed tests.</p>
+      <div className="mt-5">
+        <ProgressStrip save={save} reducedMotion={reducedMotion} />
+      </div>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button type="button" className="tq-btn tq-btn-primary" onClick={onAgain} autoFocus>

@@ -1,4 +1,7 @@
-import type { ChallengeModifier } from "./types";
+import { createRng, wordSource, type TypingEngine, type WordSource } from "@/engine";
+import { applyTransforms, type ChallengeModifier } from "./types";
+
+const HEAT_PENALTY_MS = 2000;
 
 const flip = (c: string, rng: () => number) => (rng() < 0.5 ? c.toUpperCase() : c.toLowerCase());
 
@@ -59,28 +62,21 @@ export const MODIFIERS: readonly ChallengeModifier[] = [
     icon: "♨",
     description: "Every mistake burns 2 seconds off the clock.",
     scoreMultiplier: 1.3,
+    // The rule lives in the engine (so server replays match); the effect only shows the damage.
+    onError: (_e, engine) => engine.penalize(HEAT_PENALTY_MS),
     renderEffect: (engine, ctx) => {
       let penalty = 0;
       const badge = document.createElement("div");
       badge.className = "tq-heat-badge";
       badge.setAttribute("aria-live", "polite");
       ctx.root.appendChild(badge);
-      const offs = [
-        engine.on("error", () => {
-          if (engine.getSnapshot().status !== "running") return;
-          penalty += 2000;
-          badge.textContent = `−${penalty / 1000}s`;
-          badge.dataset.pop = String(Date.now());
-          check();
-        }),
-        engine.on("tick", () => check()),
-      ];
-      function check() {
-        const s = engine.getSnapshot();
-        if (s.status === "running" && s.remainingMs !== null && s.remainingMs - penalty <= 0) engine.finish();
-      }
+      const off = engine.on("error", () => {
+        if (engine.getSnapshot().status !== "running") return;
+        penalty += HEAT_PENALTY_MS;
+        badge.textContent = `−${penalty / 1000}s`;
+      });
       return () => {
-        offs.forEach((off) => off());
+        off();
         badge.remove();
       };
     },
@@ -114,3 +110,25 @@ function toggleAttr(root: HTMLElement, name: string): () => void {
 export function chaosScore(wpm: number, accuracy: number, multiplier: number): number {
   return Math.round(wpm * (accuracy / 100) ** 2 * multiplier * 10);
 }
+
+/** Normalized modifier list: known ids, no duplicates, catalog order (which is the transform order). */
+export function resolveModifiers(ids: readonly string[]): ChallengeModifier[] {
+  const set = new Set(ids);
+  return MODIFIERS.filter((m) => set.has(m.id));
+}
+
+/** Words for a chaos run: the same seeded generator and transforms on the client and the server. */
+export function chaosSource(seed: number, mods: readonly ChallengeModifier[]): WordSource {
+  const src = wordSource({ seed });
+  if (!mods.some((m) => m.transformText)) return src;
+  const rng = createRng(`chaos:${seed}`);
+  return { take: (n) => applyTransforms(src.take(n), mods, rng) };
+}
+
+/** Hooks the modifiers' rules (onError) onto an engine — live or in a server replay. */
+export function attachModifierRules(engine: TypingEngine, mods: readonly ChallengeModifier[]): () => void {
+  if (!mods.some((m) => m.onError)) return () => {};
+  return engine.on("error", (e) => mods.forEach((m) => m.onError?.(e, engine)));
+}
+
+export const CHAOS_SECONDS = 30;

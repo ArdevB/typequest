@@ -17,6 +17,7 @@ export interface DuelState {
   /** "intro" before the first keystroke, then "fight", then "ko". */
   stage: "intro" | "fight" | "ko";
   winner: "player" | "rival" | null;
+  parries: number;
 }
 
 const MAX_HP = 100;
@@ -26,6 +27,9 @@ const RIVAL_EVERY = 5200;
 const RIVAL_DAMAGE = 7;
 const COUNTER_DAMAGE = 5;
 const SPECIAL_EVERY = 5;
+/** Finish a word this close (ms) before the rival's strike lands and you parry it. */
+export const PARRY_WINDOW = 450;
+const PARRY_DAMAGE = 9;
 
 /** Which move a word turns into: longer words hit harder; every 5th word in a row is a special. */
 export function moveFor(length: number, chain: number): DuelMove {
@@ -55,7 +59,9 @@ export class DuelSim extends SimBase implements GameSim<DuelState> {
     wordsDone: 0,
     stage: "intro",
     winner: null,
+    parries: 0,
   };
+  private lastCorrectAt = -Infinity;
   private nextRivalAt = RIVAL_EVERY;
   private lastRivalAt = 0;
 
@@ -72,6 +78,7 @@ export class DuelSim extends SimBase implements GameSim<DuelState> {
         const s = this.state;
         s.chain = this.streak;
         s.wordsDone += 1;
+        this.lastCorrectAt = this.time;
         let move = moveFor(e.word.length, s.chain);
         const dmg = Math.round(DAMAGE[move] * (1 + Math.min(s.chain, 20) / 40));
         s.rivalHp = clamp(s.rivalHp - dmg, 0, RIVAL_HP);
@@ -97,6 +104,15 @@ export class DuelSim extends SimBase implements GameSim<DuelState> {
     if (s.playerHp <= 0) this.ko("rival");
   }
 
+  /** A word finished just as the rival struck: the blow is turned aside and punished. */
+  private parry(): void {
+    const s = this.state;
+    s.parries += 1;
+    s.rivalHp = clamp(s.rivalHp - PARRY_DAMAGE, 0, RIVAL_HP);
+    this.emit({ type: "parry", damage: PARRY_DAMAGE, finisher: s.rivalHp <= 0 });
+    if (s.rivalHp <= 0) this.ko("player");
+  }
+
   private ko(winner: "player" | "rival"): void {
     this.state.stage = "ko";
     this.state.winner = winner;
@@ -110,7 +126,8 @@ export class DuelSim extends SimBase implements GameSim<DuelState> {
       if (now >= this.nextRivalAt) {
         this.lastRivalAt = now;
         this.nextRivalAt = now + RIVAL_EVERY;
-        this.hitPlayer(RIVAL_DAMAGE, "attack");
+        if (now - this.lastCorrectAt <= PARRY_WINDOW) this.parry();
+        else this.hitPlayer(RIVAL_DAMAGE, "attack");
       }
     });
   }

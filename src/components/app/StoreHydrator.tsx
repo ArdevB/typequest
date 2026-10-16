@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { sound } from "@/lib/sound";
+import { music, sfx, sound, type MusicTrack } from "@/lib/sound";
+import { useMusicScene } from "@/stores/musicScene";
 import { useChallenges } from "@/stores/challengesStore";
 import { useGames } from "@/stores/gamesStore";
 import { useHistory } from "@/stores/historyStore";
@@ -43,6 +44,22 @@ export function StoreHydrator() {
     html.dataset.cb = colorblind ? "true" : "false";
     html.dataset.rm = reduced ? "true" : "false";
   }, [ready, themeId, colorblind, reduced]);
+
+  const sfxVolume = useSettings((s) => s.sfxVolume);
+  const musicOn = useSettings((s) => s.musicOn);
+  const musicVolume = useSettings((s) => s.musicVolume);
+  const scene = useMusicScene((s) => s.scene);
+
+  useEffect(() => {
+    if (!ready) return;
+    sfx.configure({ enabled: soundOn, volume: sfxVolume });
+  }, [ready, soundOn, sfxVolume]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const track: MusicTrack = scene === "battle" ? "battle" : (getTheme(themeId).config.id as MusicTrack);
+    music.configure({ enabled: soundOn && musicOn, volume: musicVolume, track });
+  }, [ready, soundOn, musicOn, musicVolume, scene, themeId]);
 
   useEffect(() => {
     if (!ready) return;

@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { SOUND_PACKS, sound, type SoundPackId } from "@/lib/sound";
+import { SOUND_PACKS, sfx, sound, type SoundPackId } from "@/lib/sound";
 import { useSettings, type MotionPref } from "@/stores/settingsStore";
 import { THEME_LIST, getTheme } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
-import type { StopOnError } from "@/engine";
+import { LAYOUTS, LAYOUT_IDS, type StopOnError } from "@/engine";
 import { useUnlocked } from "@/hooks/useUnlocks";
 import { UNLOCKABLES, isOutfitUnlocked, isThemeUnlocked, type MascotOutfit } from "@/unlocks/catalog";
 
@@ -71,7 +71,7 @@ export function SettingsPanel() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-11 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-4 shadow-2xl"
+            className="absolute right-0 top-11 z-40 max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-4 shadow-2xl"
           >
             <SettingsForm />
           </motion.div>
@@ -104,8 +104,8 @@ export function SettingsForm() {
                 style={{ background: config.colors.bg, color: config.colors.text }}
               >
                 <span className={`mb-1.5 flex gap-1 ${open ? "" : "opacity-40"}`}>
-                  {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c) => (
-                    <i key={c} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
+                  {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c, i) => (
+                    <i key={i} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
                   ))}
                 </span>
                 <span className={`text-sm font-medium ${open ? "" : "opacity-60"}`}>{config.name}</span>
@@ -151,6 +151,41 @@ export function SettingsForm() {
         </label>
       </Section>
 
+      <Section title="Music & game effects">
+        <Switch label="Background music" on={s.musicOn} onChange={(v) => s.set("musicOn", v)} />
+        <label className="mt-1 flex items-center gap-3 text-sm text-sub">
+          Music
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={s.musicVolume}
+            disabled={!s.musicOn}
+            onChange={(e) => s.set("musicVolume", Number(e.target.value))}
+            className="flex-1 accent-[var(--main)] disabled:opacity-40"
+            aria-label="Music volume"
+          />
+        </label>
+        <label className="mt-2 flex items-center gap-3 text-sm text-sub">
+          Effects
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={s.sfxVolume}
+            onChange={(e) => {
+              s.set("sfxVolume", Number(e.target.value));
+              void sfx.preload().then(() => setTimeout(() => sfx.play("hit"), 30));
+            }}
+            className="flex-1 accent-[var(--main)]"
+            aria-label="Game effects volume"
+          />
+        </label>
+        <p className="mt-1 text-xs text-sub">Music follows your theme; games get a battle track. Everything mutes with the speaker button.</p>
+      </Section>
+
       <Section title="Mistakes">
         <div className="flex flex-wrap gap-1.5">
           {(
@@ -181,6 +216,17 @@ export function SettingsForm() {
             </Chip>
           ))}
         </div>
+      </Section>
+
+      <Section title="Keyboard layout">
+        <div className="flex flex-wrap gap-1.5">
+          {LAYOUT_IDS.map((id) => (
+            <Chip key={id} active={s.layout === id} onClick={() => s.set("layout", id)}>
+              {LAYOUTS[id].name}
+            </Chip>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-sub">Lessons, the finger guide and practice follow this. Switch your computer to the same layout too.</p>
       </Section>
 
       <Section title="Display">

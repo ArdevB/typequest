@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { QWERTY, type RunResult, type TypingEngine } from "@/engine";
+import { getLayout, type RunResult, type TypingEngine } from "@/engine";
 import { KeyboardPanel } from "@/components/keyboard/KeyboardPanel";
 import { FINGER_NAMES, fingerOf } from "@/components/keyboard/geometry";
 import { TypingSurface } from "@/components/typing/TypingSurface";
@@ -29,7 +29,9 @@ type Phase =
 const newSeed = () => Math.floor(Math.random() * 2 ** 31);
 
 export function LessonRunner({ lessonId }: { lessonId: string }) {
-  const lesson = getLesson(lessonId);
+  const layoutId = useSettings((s) => s.layout);
+  const layout = getLayout(layoutId);
+  const lesson = getLesson(lessonId, layoutId);
   const router = useRouter();
   const ready = useHydrated((s) => s.ready);
   const progress = useLessons((s) => s.progress);
@@ -46,8 +48,8 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
 
   const text = useMemo(() => (lesson ? lesson.build(seed) : ""), [lesson, seed]);
   const mode = useMemo(() => ({ kind: "text" as const, text }), [text]);
-  const activeKeys = useMemo(() => (lesson ? keysTaughtThrough(lesson) : undefined), [lesson]);
-  const next = lesson ? nextLesson(lesson.id) : undefined;
+  const activeKeys = useMemo(() => (lesson ? keysTaughtThrough(lesson, layoutId) : undefined), [lesson, layoutId]);
+  const next = lesson ? nextLesson(lesson.id, layoutId) : undefined;
 
   const start = useCallback(() => {
     setSeed(newSeed());
@@ -64,7 +66,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
       if (!lesson) return;
       const stars = rateLesson(lesson, result);
       const outcome = record(lesson.id, { wpm: result.wpm, accuracy: result.accuracy, stars });
-      const payload = { lessonId: lesson.id, seed, log: [...result.log] };
+      const payload = { lessonId: lesson.id, seed, layout: layoutId, log: [...result.log] };
       const save = beginSave({
         valid: result.flags.pasteAttempts === 0,
         send: () => saveLesson(payload),
@@ -73,7 +75,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
       });
       setPhase({ kind: "results", result, stars, previousStars: outcome.previousStars, save });
     },
-    [lesson, record, seed, queueLesson],
+    [lesson, record, seed, queueLesson, layoutId],
   );
 
   // Keyboard: Enter/Space starts from the intro; Tab/Esc restarts; Enter continues from results.
@@ -153,7 +155,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
             {lesson.newKeys && (
               <ul className="mt-6 flex flex-wrap justify-center gap-3" aria-label="New keys">
                 {[...lesson.newKeys].map((k) => {
-                  const def = QWERTY.byChar.get(k);
+                  const def = layout.byChar.get(k);
                   const finger = def ? fingerOf(def) : null;
                   return (
                     <li key={k} className="flex flex-col items-center gap-1.5" data-finger={finger ?? undefined}>
@@ -223,6 +225,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
             activeKeys={activeKeys}
             highlight={phase.kind === "intro" ? lesson.newKeys : undefined}
             reducedMotion={reducedMotion}
+            layout={layout}
           />
         </div>
       )}

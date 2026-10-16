@@ -34,6 +34,8 @@ export type RunPayload = z.infer<typeof runPayload>;
 export const lessonPayload = z.object({
   lessonId: z.string().min(1).max(40),
   seed: z.number().int().nonnegative().max(2 ** 32),
+  /** Keyboard layout the lesson was built for (letter lessons differ per layout). */
+  layout: z.enum(["qwerty", "dvorak", "colemak"]).optional(),
   log: z.array(keystroke).min(1).max(MAX_LOG),
 });
 export type LessonPayload = z.infer<typeof lessonPayload>;
@@ -64,6 +66,25 @@ export const gamePayload = z.object({
   log: z.array(keystroke).min(1).max(MAX_LOG),
 });
 export type GamePayload = z.infer<typeof gamePayload>;
+
+export const chaosPayload = z.object({
+  mods: z.array(z.string().min(1).max(30)).max(12),
+  seed: z.number().int().nonnegative().max(2 ** 32),
+  log: z.array(keystroke).min(1).max(MAX_LOG),
+});
+export type ChaosPayload = z.infer<typeof chaosPayload>;
+
+const letter = z.string().regex(/^[a-z]$/);
+export const practicePayload = z.object({
+  drill: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("mix"), keys: z.array(letter).min(1).max(5) }),
+    z.object({ kind: z.literal("key"), key: letter }),
+  ]),
+  seed: z.number().int().nonnegative().max(2 ** 32),
+  layout: z.enum(["qwerty", "dvorak", "colemak"]).optional(),
+  log: z.array(keystroke).min(1).max(MAX_LOG),
+});
+export type PracticePayload = z.infer<typeof practicePayload>;
 
 export interface StreakInfo {
   streak: number;

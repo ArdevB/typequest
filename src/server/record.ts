@@ -4,7 +4,8 @@ import { ACHIEVEMENTS_BY_ID } from "@/achievements/catalog";
 import { newlyEarned, type PlayerStats, type RunContext } from "@/achievements/check";
 import type { RunResult } from "@/engine";
 import type { LessonPayload, ProgressResponse, RunPayload, StreakInfo, UnlockedAchievement } from "@/lib/payloads";
-import { LESSON_PASS_XP, LESSON_STAR_XP, PB_BONUS_XP, gameXp, levelForXp, rankFor, runXp } from "@/lib/progression";
+import { LESSON_PASS_XP, LESSON_STAR_XP, PB_BONUS_XP, chaosXp, gameXp, levelForXp, practiceXp, rankFor, runXp } from "@/lib/progression";
+import type { ChaosCheck } from "./validateChaos";
 import type { GameOutcome } from "@/games/types";
 import type { Stars } from "@/lessons/rating";
 
@@ -133,6 +134,41 @@ export async function recordGame(
     p_xp: gameXp(outcome),
   });
   return { xpAwarded: r.xp_awarded, isBest: r.is_best };
+}
+
+/** Writes a validated chaos run. */
+export async function recordChaos(
+  admin: SupabaseClient,
+  userId: string,
+  seed: number,
+  c: ChaosCheck,
+): Promise<{ xpAwarded: number; isBest: boolean; overallBest: boolean }> {
+  const r = await rpc<{ xp_awarded: number; is_best: boolean; overall_best: boolean }>(admin, "record_chaos", {
+    p_user: userId,
+    p_run: {
+      combo: c.combo,
+      mods: c.mods,
+      seed,
+      score: c.score,
+      multiplier: Math.round(c.multiplier * 1000) / 1000,
+      wpm: c.result.wpm,
+      accuracy: c.result.accuracy,
+      duration_ms: c.result.durationMs,
+      keystroke_log: c.result.log,
+    },
+    p_xp: chaosXp(c.result, c.multiplier),
+  });
+  return { xpAwarded: r.xp_awarded, isBest: r.is_best, overallBest: r.overall_best };
+}
+
+/** Writes a validated practice drill: its key stats join the account's, plus a little XP. */
+export async function recordPractice(admin: SupabaseClient, userId: string, result: RunResult): Promise<{ xpAwarded: number }> {
+  const r = await rpc<{ xp_awarded: number }>(admin, "record_practice", {
+    p_user: userId,
+    p_key_stats: result.perKey,
+    p_xp: practiceXp(result),
+  });
+  return { xpAwarded: r.xp_awarded };
 }
 
 // ---------------------------------------------------------------------------

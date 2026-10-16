@@ -1,4 +1,7 @@
 import type { Application, Container, Graphics, Text } from "pixi.js";
+import type { SfxName } from "@/lib/sound";
+
+export type { SfxName };
 
 export type Pixi = typeof import("pixi.js");
 
@@ -39,11 +42,15 @@ export interface RenderCtx {
   app: Application;
   colors: Colors;
   reducedMotion: boolean;
+  /** Plays a game sound (no-op when sound is off). */
+  sfx?: (name: SfxName, opts?: { volume?: number; rate?: number }) => void;
 }
 
 export interface GameRenderer {
   /** Called every frame after the sim has stepped. dt in ms (real time). */
   update(dtMs: number): void;
+  /** After the game ends: true once the closing cinematic has played (results can show). */
+  finished?(): boolean;
   destroy(): void;
 }
 

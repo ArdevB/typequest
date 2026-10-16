@@ -86,3 +86,15 @@ export const LESSON_STAR_XP = 10;
 export function gameXp(o: { wordsDone: number; accuracy: number; won: boolean }): number {
   return Math.min(150, Math.max(0, Math.round(o.wordsDone * (o.accuracy / 100) ** 2) + (o.won ? 20 : 0)));
 }
+
+const wordsTyped = (r: { wpm: number; durationMs: number }) => r.wpm * (r.durationMs / 60000);
+
+/** Chaos XP: like a speed test, multiplied by the chaos stacked, capped at 120. */
+export function chaosXp(r: { wpm: number; accuracy: number; durationMs: number }, multiplier: number): number {
+  return Math.min(120, Math.max(0, Math.round(wordsTyped(r) * (r.accuracy / 100) ** 2 * multiplier) + 5));
+}
+
+/** Practice XP: half a speed test's, capped at 40 (drills are short and repetitive). */
+export function practiceXp(r: { wpm: number; accuracy: number; durationMs: number }): number {
+  return Math.min(40, Math.max(0, Math.round(wordsTyped(r) * (r.accuracy / 100) ** 2 * 0.5) + 2));
+}

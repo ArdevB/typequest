@@ -7,17 +7,23 @@ import { Mascot } from "@/components/mascot/Mascot";
 import { TypingSurface } from "@/components/typing/TypingSurface";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { celebrate } from "@/lib/confetti";
-import { MODIFIERS, chaosScore } from "@/modifiers/catalog";
-import { applyTransforms, stackMultiplier } from "@/modifiers/types";
+import { CHAOS_SECONDS, MODIFIERS, attachModifierRules, chaosScore, chaosSource } from "@/modifiers/catalog";
+import { stackMultiplier } from "@/modifiers/types";
 import { useGames } from "@/stores/gamesStore";
+import { ProgressStrip, type SaveState } from "@/components/progress/ProgressStrip";
+import { beginSave, saveChaos } from "@/lib/api/client";
+import { ChaosBoard } from "./ChaosBoard";
 import { useHydrated } from "@/stores/hydration";
 import { useSettings } from "@/stores/settingsStore";
 
-const SECONDS = 30;
+const SECONDS = CHAOS_SECONDS;
 const MODE: TestMode = { kind: "time", seconds: SECONDS };
 const newSeed = () => Math.floor(Math.random() * 2 ** 31);
 
-type View = { kind: "pick" } | { kind: "typing" } | { kind: "done"; result: RunResult; score: number; isBest: boolean; previous: number | null; overallBest: boolean };
+type View =
+  | { kind: "pick" }
+  | { kind: "typing" }
+  | { kind: "done"; result: RunResult; score: number; isBest: boolean; previous: number | null; overallBest: boolean; save: SaveState };
 
 export function ChaosView() {
   const ready = useHydrated((s) => s.ready);
@@ -39,12 +45,8 @@ export function ChaosView() {
   const [engine, setEngine] = useState<TypingEngine | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // A fresh, seeded transform per run so the random case pattern is stable within the run.
-  const transformWords = useMemo(() => {
-    if (!active.some((m) => m.transformText)) return undefined;
-    const rng = createRng(`chaos:${seed}`);
-    return (words: string[]) => applyTransforms(words, active, rng);
-  }, [active, seed]);
+  // Same generator the server replays with: seeded words, then the modifiers' transforms.
+  const makeSource = useCallback(() => chaosSource(seed, active), [seed, active]);
 
   const start = useCallback(() => {
     setSeed(newSeed());
@@ -58,7 +60,7 @@ export function ChaosView() {
     if (!engine || !root || view.kind !== "typing") return;
     const rng = createRng(`chaos-fx:${seed}`);
     const cleanups = active.map((m) => m.renderEffect?.(engine, { root, reducedMotion, rng }) ?? (() => {}));
-    const offErr = engine.on("error", (e) => active.forEach((m) => m.onError?.(e, engine)));
+    const offErr = attachModifierRules(engine, active);
     return () => {
       offErr();
       cleanups.forEach((c) => c());
@@ -74,9 +76,16 @@ export function ChaosView() {
         const css = getComputedStyle(document.documentElement);
         void celebrate(["--main", "--caret", "--combo-3"].map((v) => css.getPropertyValue(v).trim()).filter(Boolean));
       }
-      setView({ kind: "done", result, score, ...r });
+      const save = beginSave({
+        valid,
+        send: () => saveChaos({ mods: active.map((m) => m.id), seed, log: [...result.log] }),
+        // Guests keep chaos bests in this browser only.
+        queue: () => {},
+        update: (next) => setView((cur) => (cur.kind === "done" && cur.result === result ? { ...cur, save: next } : cur)),
+      });
+      setView({ kind: "done", result, score, ...r, save });
     },
-    [multiplier, combo, recordChaos, reducedMotion],
+    [multiplier, combo, recordChaos, reducedMotion, active, seed],
   );
 
   useEffect(() => {
@@ -144,6 +153,7 @@ export function ChaosView() {
                 Unleash chaos →
               </button>
             </div>
+            <ChaosBoard />
           </motion.section>
         )}
 
@@ -162,7 +172,7 @@ export function ChaosView() {
                 mode={MODE}
                 stopOnError="off"
                 seed={seed}
-                transformWords={transformWords}
+                makeSource={makeSource}
                 runKey={runKey}
                 themeId={themeId}
                 reducedMotion={reducedMotion}
@@ -205,7 +215,9 @@ export function ChaosView() {
             <p className="tq-chrome mt-4 text-xs text-sub">
               <kbd>Enter</kbd> — again
             </p>
-            <p className="mt-6 text-xs text-sub">Chaos scores are kept in this browser.</p>
+            <div className="mt-6">
+              <ProgressStrip save={view.save} reducedMotion={reducedMotion} />
+            </div>
             <div className="mt-6 flex justify-center">
               <Mascot engine={null} mood={view.isBest ? "cheer" : view.result.accuracy >= 90 ? "happy" : "sad"} size={80} />
             </div>

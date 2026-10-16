@@ -19,6 +19,7 @@ export function renderRacing(ctx: RenderCtx, sim: RacingSim): GameRenderer {
   const laneColors: Record<string, string> = { player: colors.main, bot: colors.sub, ghost: colors.caret };
   const cars = new Map<string, { root: Container; body: Graphics; name: Text }>();
   let scroll = 0;
+  let revved = false;
 
   function carFor(id: string, kind: string, name: string) {
     let c = cars.get(id);
@@ -86,6 +87,10 @@ export function renderRacing(ctx: RenderCtx, sim: RacingSim): GameRenderer {
         }
       });
 
+      if (!revved && me && me.progress > 0) {
+        revved = true;
+        ctx.sfx?.("engine");
+      }
       for (const f of sim.drainFx()) {
         const meIdx = racers.findIndex((r) => r.kind === "player");
         const r = me;
@@ -93,8 +98,8 @@ export function renderRacing(ctx: RenderCtx, sim: RacingSim): GameRenderer {
         const y = top + laneH * (meIdx + 0.5);
         const x = startX + r.progress * trackLen;
         if (f.type === "word") particles.burst(x - 30, y, { count: 6, colors: [colors.main, colors.caret], speed: 160, life: 0.35, size: 2.5, gravity: 0, angle: Math.PI, spread: 0.8 });
-        else if (f.type === "skid") particles.burst(x - 20, y + 12, { count: 8, colors: [colors.error], speed: 120, life: 0.4, size: 2, gravity: 0 });
-        else if (f.type === "finish" && f.racer === "you") particles.burst(fx, y, { count: 80, colors: [colors.gold, colors.main, colors.caret], speed: 380, life: 1.2, size: 4 });
+        else if (f.type === "skid") ctx.sfx?.("crash", { volume: 0.25, rate: 1.6 }), particles.burst(x - 20, y + 12, { count: 8, colors: [colors.error], speed: 120, life: 0.4, size: 2, gravity: 0 });
+        else if (f.type === "finish" && f.racer === "you") ctx.sfx?.("finish"), particles.burst(fx, y, { count: 80, colors: [colors.gold, colors.main, colors.caret], speed: 380, life: 1.2, size: 4 });
       }
       particles.update(dt);
     },

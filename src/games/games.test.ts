@@ -125,3 +125,29 @@ describe("weekly boss", async () => {
     expect(o.game).toBe("weekly-boss");
   });
 });
+
+describe("stickman duel parry", async () => {
+  const { createSim } = await import("./registry");
+  it("a word finished just before the rival strikes parries it", () => {
+    let clock = 0;
+    const sim = createSim("stickman-duel", 99, { now: () => clock });
+    const words = sim.engine.getWords();
+    const typeWord = (w: string, at: number) => {
+      clock = at;
+      sim.step(at);
+      for (const ch of w) sim.engine.input(ch);
+      sim.engine.space();
+    };
+    typeWord(words[0]!, 0); // starts the fight at t=0
+    typeWord(words[1]!, 5000); // 200 ms before the 5200 ms strike
+    clock = 5400;
+    sim.step(5400);
+    const st = sim.state as { parries: number; playerHp: number };
+    expect(st.parries).toBe(1);
+    expect(st.playerHp).toBe(100);
+    // The next strike (10400) isn't parried.
+    clock = 10500;
+    sim.step(10500);
+    expect((sim.state as { playerHp: number }).playerHp).toBeLessThan(100);
+  });
+});
