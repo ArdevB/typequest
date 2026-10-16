@@ -148,3 +148,45 @@ export function weakKeyWeights(perKey: Readonly<Record<string, PerKeyStat>>): Re
   }
   return out;
 }
+
+export interface DrillOptions {
+  /** Keys being taught, e.g. "fj". Most characters come from here. */
+  focus: string;
+  /** Keys already learned, mixed in for review. */
+  review?: string;
+  /** Number of groups (space-separated chunks). */
+  groups?: number;
+  minLen?: number;
+  maxLen?: number;
+  /** Share of characters taken from `focus` (0–1). Default 0.7. */
+  focusRatio?: number;
+  seed?: number | string;
+}
+
+/**
+ * Letter-group drills for learning new keys: "fjf jjf fffj jfj".
+ * The first groups use only the focus keys so beginners start gently.
+ */
+export function drillText(o: DrillOptions): string[] {
+  const rng = createRng(o.seed ?? Math.floor(Math.random() * 2 ** 32));
+  const focus = [...o.focus.replace(/\s/g, "")];
+  const review = [...(o.review ?? "").replace(/\s/g, "")].filter((k) => !focus.includes(k));
+  if (focus.length === 0) return [];
+  const groups = o.groups ?? 20;
+  const minLen = o.minLen ?? 2;
+  const maxLen = o.maxLen ?? 5;
+  const ratio = o.focusRatio ?? 0.7;
+  const warmup = Math.min(4, Math.floor(groups / 4));
+
+  const out: string[] = [];
+  for (let g = 0; g < groups; g++) {
+    const len = randInt(rng, minLen, maxLen);
+    let s = "";
+    for (let i = 0; i < len; i++) {
+      const useReview = g >= warmup && review.length > 0 && rng() > ratio;
+      s += pick(rng, useReview ? review : focus);
+    }
+    out.push(s);
+  }
+  return out;
+}

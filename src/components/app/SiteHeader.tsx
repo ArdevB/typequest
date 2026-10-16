@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
 
-const SOON = ["learn", "play", "challenges", "leaderboard"] as const;
+const SOON = ["play", "challenges", "leaderboard"] as const;
 
 export function SiteHeader() {
   return (
@@ -15,6 +15,9 @@ export function SiteHeader() {
       <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Main">
         <Link href="/test" className="text-text hover:text-main">
           test
+        </Link>
+        <Link href="/learn" className="text-text hover:text-main">
+          learn
         </Link>
         {SOON.map((s) => (
           <span key={s} className="cursor-default text-sub/70" title="Coming in a later phase">

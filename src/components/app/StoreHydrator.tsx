@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { sound } from "@/lib/sound";
 import { useHistory } from "@/stores/historyStore";
+import { useLessons } from "@/stores/lessonsStore";
 import { useHydrated } from "@/stores/hydration";
 import { useSettings } from "@/stores/settingsStore";
 import { getTheme } from "@/themes/registry";
@@ -22,7 +23,11 @@ export function StoreHydrator() {
   const ready = useHydrated((s) => s.ready);
 
   useEffect(() => {
-    void Promise.all([useSettings.persist.rehydrate(), useHistory.persist.rehydrate()]).then(() =>
+    void Promise.all([
+      useSettings.persist.rehydrate(),
+      useHistory.persist.rehydrate(),
+      useLessons.persist.rehydrate(),
+    ]).then(() =>
       useHydrated.setState({ ready: true }),
     );
   }, []);

@@ -30,4 +30,5 @@ export const safeStorage = createJSONStorage(() => safeLocal);
 export const STORAGE_KEYS = {
   settings: "tq-settings",
   history: "tq-history",
+  lessons: "tq-lessons",
 } as const;

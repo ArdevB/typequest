@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const PATH = [
-  { step: "01", title: "Learn", body: "Home row first. A color-coded keyboard and animated hands show which finger goes where.", ready: false },
+  { step: "01", title: "Learn", body: "Home row first. A color-coded keyboard and animated hands show which finger goes where.", ready: true },
   { step: "02", title: "Practice", body: "Drills built from your weakest keys, with a heatmap of where the mistakes happen.", ready: false },
   { step: "03", title: "Speed test", body: "15 to 120 seconds or 10 to 100 words. Live WPM, a consistency graph and an S–C grade.", ready: true },
   { step: "04", title: "Play", body: "Blast falling words, fight a boss with every correct word, race your own ghost.", ready: false },
@@ -26,9 +26,14 @@ export default function Home() {
           <span className="tq-demo-typed">the quick brown fox</span>
           <span className="tq-demo-rest"> jumps over the lazy dog</span>
         </div>
-        <Link href="/test" className="tq-btn tq-btn-primary mt-10 text-lg">
-          Start a speed test →
-        </Link>
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
+          <Link href="/learn" className="tq-btn tq-btn-primary text-lg">
+            Learn from scratch →
+          </Link>
+          <Link href="/test" className="tq-btn text-lg">
+            Take a speed test
+          </Link>
+        </div>
         <p className="mt-3 text-sm text-sub">No account needed. Your records save in this browser.</p>
       </section>
 

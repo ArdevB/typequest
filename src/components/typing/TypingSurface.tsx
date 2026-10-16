@@ -8,35 +8,48 @@ import {
   wordSource,
   type RunResult,
   type StopOnError,
+  type TestMode,
   type TypingEngine,
 } from "@/engine";
 import { createParticleLayer, type ParticleLayer } from "@/lib/particles";
 import { sound } from "@/lib/sound";
-import type { SpeedMode } from "@/stores/settingsStore";
 import { effectsFor, getTheme } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
 import { createWordsRenderer, type WordsRenderer } from "./wordsRenderer";
 
 export interface TypingSurfaceProps {
-  mode: SpeedMode;
+  /** time / words use random words; text mode types the given text (lessons). */
+  mode: TestMode;
   stopOnError: StopOnError;
-  punctuation: boolean;
-  numbers: boolean;
+  punctuation?: boolean;
+  numbers?: boolean;
   /** Words to retype (the "repeat test" button). null = fresh words. */
-  repeatWords: readonly string[] | null;
+  repeatWords?: readonly string[] | null;
   /** Bump to restart. */
   runKey: number;
   themeId: ThemeId;
   reducedMotion: boolean;
   showLiveWpm: boolean;
   onFinish: (result: RunResult) => void;
+  /** Gives the live engine to companions (virtual keyboard, hands). Called with null on teardown. */
+  onEngine?: (engine: TypingEngine | null) => void;
 }
 
 /** Particle canvas overhang around the words, so sparks aren't clipped. */
 const PAD = 48;
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { mode, stopOnError, punctuation, numbers, repeatWords, runKey, themeId, reducedMotion, showLiveWpm } = props;
+  const {
+    mode,
+    stopOnError,
+    punctuation = false,
+    numbers = false,
+    repeatWords = null,
+    runKey,
+    themeId,
+    reducedMotion,
+    showLiveWpm,
+  } = props;
 
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -49,12 +62,14 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const rendererRef = useRef<WordsRenderer | null>(null);
   const onFinishRef = useRef(props.onFinish);
   onFinishRef.current = props.onFinish;
+  const onEngineRef = useRef(props.onEngine);
+  onEngineRef.current = props.onEngine;
 
   const [engine, setEngine] = useState<TypingEngine | null>(null);
   const [focused, setFocused] = useState(true);
   const [pasteNotice, setPasteNotice] = useState(false);
 
-  const modeValue = mode.kind === "time" ? mode.seconds : mode.count;
+  const modeValue = mode.kind === "time" ? mode.seconds : mode.kind === "words" ? mode.count : mode.text;
 
   // Engine, renderer and input: recreated for every new test.
   useEffect(() => {
@@ -63,10 +78,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
     const input = inputRef.current;
     if (!root || !wordsEl || !input) return;
 
-    const engineMode =
-      mode.kind === "time" ? { kind: "time" as const, seconds: mode.seconds } : { kind: "words" as const, count: mode.count };
     const e = createTypingEngine({
-      mode: engineMode,
+      mode,
       source: repeatWords ? fixedSource(repeatWords) : wordSource({ punctuation, numbers }),
       stopOnError,
     });
@@ -120,6 +133,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
     window.addEventListener("mousemove", onMouseMove);
 
     setEngine(e);
+    onEngineRef.current?.(e);
     input.focus({ preventScroll: true });
 
     return () => {
@@ -133,6 +147,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       e.destroy();
       delete html.dataset.typing;
       setEngine(null);
+      onEngineRef.current?.(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mode is tracked by kind + value
   }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, repeatWords, themeId]);
@@ -188,7 +203,10 @@ export function TypingSurface(props: TypingSurfaceProps) {
   }, []);
 
   const focus = () => inputRef.current?.focus({ preventScroll: true });
-  const initialProgress = mode.kind === "time" ? String(mode.seconds) : `0/${mode.count}`;
+  const initialProgress =
+    mode.kind === "time"
+      ? String(mode.seconds)
+      : `0/${mode.kind === "words" ? mode.count : mode.text.trim().split(/\s+/).length}`;
 
   return (
     <div ref={rootRef} className="tq-surface" data-focused={focused ? "true" : "false"} data-status="idle">

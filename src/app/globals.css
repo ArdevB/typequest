@@ -448,3 +448,240 @@ html[data-rm="true"] *::after {
 html[data-rm="true"] .tq-caret[data-status="idle"] {
   animation: none;
 }
+
+/* ---------- Finger colors (Okabe–Ito based, colorblind-friendly) ---------- */
+:root {
+  --f-pinky: #cc79a7;
+  --f-ring: #56b4e9;
+  --f-middle: #2bb38a;
+  --f-index: #e69f00;
+  --f-thumb: #9a9aa8;
+}
+[data-finger$="pinky"] {
+  --fc: var(--f-pinky);
+}
+[data-finger$="ring"] {
+  --fc: var(--f-ring);
+}
+[data-finger$="middle"] {
+  --fc: var(--f-middle);
+}
+[data-finger$="index"] {
+  --fc: var(--f-index);
+}
+[data-finger$="thumb"] {
+  --fc: var(--f-thumb);
+}
+
+/* ---------- Virtual keyboard ---------- */
+.kb {
+  --kb-row: 2.9em;
+  position: relative;
+  width: 100%;
+  font-size: clamp(8px, 1.25vw, 13px);
+  user-select: none;
+}
+.kb-row {
+  position: relative;
+  height: var(--kb-row);
+}
+.kb-slot {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  padding: 0.18em;
+}
+.kb-key {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-radius: 0.55em;
+  font-family: var(--font-mono-family);
+  font-size: 1.15em;
+  color: color-mix(in srgb, var(--text) 75%, var(--sub));
+  background: color-mix(in srgb, var(--fc, var(--sub)) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--fc, var(--sub)) 42%, var(--border));
+  border-bottom-width: 3px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.2s ease,
+    box-shadow 0.15s ease;
+}
+.kb-key[data-mod] {
+  font-size: 0.8em;
+  color: var(--sub);
+}
+.kb-key:not([data-finger]) {
+  background: color-mix(in srgb, var(--surface) 70%, var(--bg));
+  border-color: var(--border);
+  opacity: 0.6;
+}
+.kb-top {
+  position: absolute;
+  top: 0.15em;
+  left: 0.45em;
+  font-size: 0.7em;
+  color: var(--sub);
+}
+.kb-key[data-bump]::after {
+  content: "";
+  position: absolute;
+  bottom: 0.45em;
+  left: 50%;
+  width: 0.9em;
+  height: 0.16em;
+  margin-left: -0.45em;
+  border-radius: 1em;
+  background: currentColor;
+  opacity: 0.7;
+}
+.kb-key[data-dim] {
+  opacity: 0.35;
+}
+.kb-key[data-new] {
+  background: color-mix(in srgb, var(--fc) 45%, var(--surface));
+  color: var(--text);
+  opacity: 1;
+}
+.kb-key[data-next] {
+  background: var(--fc);
+  border-color: color-mix(in srgb, var(--fc) 70%, black);
+  color: #14111f;
+  opacity: 1;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--fc) 45%, transparent), 0 0 18px color-mix(in srgb, var(--fc) 55%, transparent);
+  animation: key-pulse 1.4s ease-in-out infinite;
+}
+.kb-key[data-next] .kb-top {
+  color: inherit;
+}
+.kb-key[data-wrong] {
+  background: var(--error);
+  color: var(--bg);
+}
+@keyframes key-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--fc) 25%, transparent), 0 0 26px color-mix(in srgb, var(--fc) 45%, transparent);
+  }
+}
+html[data-rm="true"] .kb-key[data-next] {
+  animation: none;
+}
+
+/* ---------- Hands ---------- */
+.hands {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: -0.2rem;
+}
+.hand-palm {
+  fill: color-mix(in srgb, var(--text) 9%, var(--surface));
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+.hand-finger {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 0.18s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+.finger-body {
+  fill: color-mix(in srgb, var(--text) 9%, var(--surface));
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+.finger-nail {
+  fill: var(--fc);
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.hand-finger[data-active] {
+  transform: translate(calc(var(--dx, 0) * 10px), calc(var(--dy, 0) * 9px - 8px));
+}
+.hand-finger[data-active] .finger-body {
+  fill: color-mix(in srgb, var(--fc) 75%, var(--surface));
+  stroke: var(--fc);
+}
+.hand-finger[data-active] .finger-nail {
+  fill: color-mix(in srgb, white 70%, var(--fc));
+  opacity: 0.9;
+}
+html[data-theme="neon-cyber"] .hand-finger[data-active] .finger-body {
+  filter: drop-shadow(0 0 6px var(--fc));
+}
+html[data-rm="true"] .hand-finger {
+  transition: none;
+}
+
+/* ---------- Learn ---------- */
+.tq-star {
+  fill: color-mix(in srgb, var(--sub) 35%, transparent);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.tq-star[data-on="true"] {
+  fill: var(--combo-3);
+}
+html[data-theme="neon-cyber"] .tq-star[data-on="true"] {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--combo-3) 70%, transparent));
+}
+
+.tq-keycap {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.8rem;
+  font-family: var(--font-mono-family);
+  font-size: 1.6rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--fc, var(--main)) 30%, var(--surface));
+  border: 2px solid var(--fc, var(--main));
+  border-bottom-width: 5px;
+}
+
+.tq-node {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  font-family: var(--font-display-family);
+  font-weight: 700;
+  font-size: 1.25rem;
+  border-bottom: 5px solid transparent;
+  transition: box-shadow 0.2s ease;
+}
+.tq-node[data-state="locked"] {
+  color: var(--sub);
+  background: var(--bg-alt);
+  border-color: var(--border);
+}
+.tq-node[data-state="open"] {
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--main);
+  border-bottom-width: 5px;
+}
+.tq-node[data-state="done"] {
+  color: var(--bg);
+  background: var(--main);
+  border-color: color-mix(in srgb, var(--main) 70%, black);
+}
+.tq-node[data-state="current"] {
+  color: var(--bg);
+  background: var(--caret);
+  border-color: color-mix(in srgb, var(--caret) 65%, black);
+  animation: node-pulse 1.8s ease-in-out infinite;
+}
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--caret) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
