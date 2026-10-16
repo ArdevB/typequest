@@ -2,7 +2,7 @@
 
 A gamified typing trainer — from learning hand placement to high-speed tests.
 
-**Status:** Phase 4 — Speed Test, Learn, accounts/XP/leaderboards, plus daily challenges, skill challenges, achievements and streaks.
+**Status:** Phase 6 (all phases done) — Speed Test, Learn, Practice, accounts/XP/leaderboards, challenges/achievements/streaks, Pixi game modes with a Weekly Boss and friend ghost races, Chaos modifiers, unlockable themes and Keeby the mascot.
 
 ## Run it
 
@@ -77,7 +77,45 @@ Database: run `supabase/migrations/20261016020000_challenges.sql` after the core
 - `src/server/validateChallenge.ts` — replays challenge attempts with the challenge's own seed and rules.
 - Streaks update on any saved activity (`touch_streak`); a streak freeze covers one missed day.
 
+## Game modes (Phase 5)
+
+Database: run `supabase/migrations/20261016030000_games.sql` (adds `game_runs`, `record_game`, `game_leaderboard`).
+
+- `src/games/` — pure TypeScript game simulations on top of the typing engine (no React, no Pixi). Each sim steps in
+  fixed 1/60 s ticks of game time, so the same seed + keystroke log always plays out the same way.
+- `src/games/live.ts` — runs a sim in real time; each keystroke is applied at the exact game time it was stamped with.
+- `src/games/registry.ts` — `replayGame()` is what the server uses (`/api/games`) to recompute the score before saving.
+- `src/games/render/` — Pixi renderers that only read `sim.state` and visual events (`drainFx()`).
+- `src/components/games/GamePlayer.tsx` — mounts Pixi (lazy-loaded), the HUD, word strip, sounds and results.
+- Stickman Duel: short words jab, 4–5 letters kick, longer words uppercut, every 5th clean word in a row is a spinning
+  special; the finishing blow plays in slow motion with letterbox bars, a camera push-in and a K.O. title.
+- Racing saves your fastest finished race in this browser and replays it as a ghost car.
+
+## Phase 6: practice, chaos, weekly boss, unlockables, mascot
+
+Database: run `supabase/migrations/20261016040000_weekly_boss.sql` (allows `weekly-boss` game runs, per-week "best",
+and `weekly_boss_leaderboard`).
+
+- **Practice** (`/practice`, `src/components/practice/`): key heatmap (mistakes or slow keys), weakest keys, a
+  weak-key drill and single-key drills. Uses your account's key stats when signed in, otherwise this browser's.
+  Drills feed the key stats but never count as speed tests.
+- **Chaos** (`/chaos`, `src/modifiers/`): stackable modifiers built on the `ChallengeModifier` contract —
+  `transformText` (Backwords, rAnDoM cAsE), `renderEffect` (Mirror, Fog, Earthquake, Tiny Text, Heat Timer) and
+  `onError` (Sudden Death). Multipliers multiply. Chaos bests are kept in the browser.
+- **Weekly Boss** (`/play/weekly-boss`, `src/games/weekly.ts`): a tougher three-eyed boss; everyone gets the same seed
+  for the week (Monday 00:00 Nepal time reset) and a weekly twist derived from the seed, so the server's replay
+  sees the same words. The server only accepts this week's (or last week's) seed.
+- **Race a friend** (`src/games/share.ts`): after a race, "Challenge a friend" copies a link carrying the seed and your
+  progress trace; opening it races your ghost on the exact same words.
+- **Unlockables** (`src/unlocks/catalog.ts`): Retro Arcade (10 speed tests or level 3), Space Shooter (3 game wins or
+  level 6), Inferno (beat a Weekly Boss), plus Keeby outfits (headphones, shades, crown). New unlocks pop a toast.
+- **Keeby** (`src/components/mascot/`): an SVG keycap mascot driven by engine events through data-attributes (no React
+  re-render per key): bobs, grins at clean words, jumps on combos, winces at mistakes, naps when idle, and gives one
+  specific tip after each test. Can be turned off in Settings; reduced motion stills it.
+- Polish: active nav link, mobile menu, 404 page, landing page links to everything.
+
 ## Ideas queued for later phases
 
-- **Stickman duel:** two stick figures fight cinematically; each correctly typed word lands a move (planned with the
-  Pixi game modes in Phase 5).
+- Dvorak / Colemak layouts (the engine and keyboard already take a layout).
+- Server-side chaos leaderboard and XP for chaos runs and practice drills.
+- Background music per theme.

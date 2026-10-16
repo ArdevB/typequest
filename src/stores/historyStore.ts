@@ -39,6 +39,8 @@ interface HistoryState {
   /** Per-key totals across valid runs in this browser (Weak Key Hunt for guests). */
   keyStats: Record<string, PerKeyStat>;
   addRun: (result: RunResult) => RunOutcome;
+  /** Practice drills only feed the per-key stats (they never count as speed tests). */
+  addPracticeStats: (perKey: Record<string, PerKeyStat>) => void;
   queueForSync: (payload: RunPayload) => void;
   clearSynced: (clientIds: readonly string[]) => void;
 }
@@ -115,6 +117,7 @@ export const useHistory = create<HistoryState>()(
         }
         return { summary, valid, isPB, previousBest };
       },
+      addPracticeStats: (perKey) => set((s) => ({ keyStats: mergeKeyStats(s.keyStats, perKey) })),
       queueForSync: (payload) =>
         set((s) => {
           const bestIds = new Set(Object.values(s.bests).map((b) => b.id));

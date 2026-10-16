@@ -17,6 +17,7 @@ import { useLessons } from "@/stores/lessonsStore";
 import { useSettings } from "@/stores/settingsStore";
 import type { SaveState } from "@/components/progress/ProgressStrip";
 import { beginSave, saveLesson } from "@/lib/api/client";
+import { Mascot } from "@/components/mascot/Mascot";
 import { LessonResults } from "./LessonResults";
 import { StarRow } from "./StarRow";
 
@@ -225,6 +226,23 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
           />
         </div>
       )}
+      <Mascot
+        variant="dock"
+        size={72}
+        engine={phase.kind === "typing" ? engine : null}
+        mood={phase.kind === "results" ? (phase.stars > 0 ? "cheer" : "sad") : "idle"}
+        tip={
+          phase.kind === "intro"
+            ? "Eyes on the screen, fingers on the home row. You've got this."
+            : phase.kind === "results"
+              ? phase.stars === 3
+                ? "Three stars! Flawless."
+                : phase.stars > 0
+                  ? "Passed! Go again for more stars, or move on."
+                  : "Almost. Slow and accurate beats fast and messy."
+              : undefined
+        }
+      />
     </div>
   );
 }

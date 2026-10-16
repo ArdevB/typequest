@@ -1,0 +1,35 @@
+import type { ThemeConfig } from "../types";
+
+export const spaceShooterConfig: ThemeConfig = {
+  id: "space-shooter",
+  name: "Space Shooter",
+  description: "Deep space, drifting stars and laser-bright type.",
+  dark: true,
+  colors: {
+    bg: "#050816",
+    bgAlt: "#0b1026",
+    surface: "#0f1530",
+    border: "#1f2a52",
+    text: "#e6ecff",
+    sub: "#56628f",
+    main: "#7c5cff",
+    caret: "#4de1ff",
+    error: "#ff5c7a",
+    errorExtra: "#8c3550",
+    errorCb: "#ffb000",
+    combo1: "#4de1ff",
+    combo2: "#7c5cff",
+    combo3: "#ffd84d",
+    glow: "#4de1ff",
+  },
+  font: {
+    ui: '"Inter Variable", system-ui, sans-serif',
+    mono: '"JetBrains Mono Variable", ui-monospace, monospace',
+    display: '"Orbitron", "Inter Variable", sans-serif',
+  },
+  renderer: "dom",
+  sounds: "scifi",
+  particles: { colors: ["#4de1ff", "#7c5cff", "#ffd84d"], trail: true },
+  music: null,
+  caret: "line",
+};

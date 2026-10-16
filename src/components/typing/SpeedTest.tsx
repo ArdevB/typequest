@@ -2,7 +2,9 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import type { RunResult } from "@/engine";
+import type { RunResult, TypingEngine } from "@/engine";
+import { Mascot } from "@/components/mascot/Mascot";
+import { resultTip } from "@/components/mascot/tips";
 import type { SaveState } from "@/components/progress/ProgressStrip";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
 import { beginSave, saveRun } from "@/lib/api/client";
@@ -34,6 +36,7 @@ export function SpeedTest() {
   const [runKey, setRunKey] = useState(0);
   // Same seed = same words ("repeat"); the server also uses it to verify the run.
   const [seed, setSeed] = useState(newSeed);
+  const [engine, setEngine] = useState<TypingEngine | null>(null);
 
   const restart = useCallback((repeat = false) => {
     if (!repeat) setSeed(newSeed());
@@ -123,6 +126,7 @@ export function SpeedTest() {
                   reducedMotion={reducedMotion}
                   showLiveWpm={showLiveWpm}
                   onFinish={onFinish}
+                  onEngine={setEngine}
                 />
                 <p className="tq-chrome mt-8 text-center text-xs text-sub">
                   <kbd>Tab</kbd> or <kbd>Esc</kbd> — restart
@@ -144,6 +148,15 @@ export function SpeedTest() {
           </AnimatePresence>
         )}
       </div>
+      {ready && (
+        <Mascot
+          variant="dock"
+          size={76}
+          engine={view.kind === "typing" ? engine : null}
+          mood={view.kind === "results" ? (view.outcome.isPB ? "cheer" : view.result.accuracy >= 90 ? "happy" : "sad") : "idle"}
+          tip={view.kind === "results" ? resultTip(view.result, view.outcome) : undefined}
+        />
+      )}
     </div>
   );
 }

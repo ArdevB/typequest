@@ -1,4 +1,4 @@
-import type { ChallengePayload, LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
+import type { ChallengePayload, GamePayload, LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
 import type { SaveState } from "@/components/progress/ProgressStrip";
 import { useAuth } from "@/stores/authStore";
 import { toast } from "@/stores/toastStore";
@@ -59,6 +59,12 @@ export async function saveLesson(payload: LessonPayload): Promise<SaveResult> {
 
 export async function saveChallenge(payload: ChallengePayload): Promise<SaveResult> {
   const r = await post<ProgressResponse>("/api/challenges", payload);
+  if (r.ok) applyProgress(r.data);
+  return r;
+}
+
+export async function saveGame(payload: GamePayload): Promise<SaveResult> {
+  const r = await post<ProgressResponse>("/api/games", payload);
   if (r.ok) applyProgress(r.data);
   return r;
 }

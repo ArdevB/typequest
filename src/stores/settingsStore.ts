@@ -5,6 +5,7 @@ import type { SoundPackId } from "@/lib/sound";
 import { STORAGE_KEYS, safeStorage } from "@/lib/storage";
 import { DEFAULT_THEME } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
+import type { MascotOutfit } from "@/unlocks/catalog";
 
 export type SpeedMode = { kind: "time"; seconds: TimeSeconds } | { kind: "words"; count: WordCount };
 export type MotionPref = "system" | "reduce" | "full";
@@ -22,6 +23,11 @@ export interface SettingsState {
   motion: MotionPref;
   colorblind: boolean;
   showLiveWpm: boolean;
+  /** Keeby, the mascot, on the typing screens. */
+  mascot: boolean;
+  mascotOutfit: MascotOutfit;
+  /** Unlockables the player has already been told about. */
+  seenUnlocks: string[];
   set: <K extends keyof SettingsData>(key: K, value: SettingsData[K]) => void;
 }
 
@@ -39,6 +45,9 @@ export const DEFAULT_SETTINGS: SettingsData = {
   motion: "system",
   colorblind: false,
   showLiveWpm: true,
+  mascot: true,
+  mascotOutfit: "none",
+  seenUnlocks: [],
 };
 
 export const useSettings = create<SettingsState>()(

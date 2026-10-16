@@ -1,10 +1,16 @@
 import { minimalCalm } from "./minimal-calm";
+import { inferno } from "./inferno";
 import { neonCyber } from "./neon-cyber";
+import { retroArcade } from "./retro-arcade";
+import { spaceShooter } from "./space-shooter";
 import type { CreateEffects, ThemeColors, ThemeId, ThemePlugin } from "./types";
 
 export const THEMES: Readonly<Record<ThemeId, ThemePlugin>> = {
   "neon-cyber": neonCyber,
   "minimal-calm": minimalCalm,
+  "retro-arcade": retroArcade,
+  "space-shooter": spaceShooter,
+  inferno,
 };
 
 export const THEME_LIST: readonly ThemePlugin[] = Object.values(THEMES);

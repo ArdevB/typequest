@@ -2,12 +2,14 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "@fontsource/orbitron/700.css";
 import "@fontsource/orbitron/900.css";
+import "@fontsource/press-start-2p/400.css";
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "@/components/app/SiteHeader";
 import { AuthProvider } from "@/components/app/AuthProvider";
 import { StoreHydrator } from "@/components/app/StoreHydrator";
+import { UnlockWatcher } from "@/components/app/UnlockWatcher";
 import { Toaster } from "@/components/ui/Toaster";
 import { PREPAINT_SCRIPT } from "@/lib/prepaint";
 import { DEFAULT_THEME, themeCss } from "@/themes/registry";
@@ -43,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <StoreHydrator />
+        <UnlockWatcher />
         <AuthProvider />
         <SiteHeader />
         <main id="main" className="flex w-full flex-1 flex-col px-4 pb-10 sm:px-6">

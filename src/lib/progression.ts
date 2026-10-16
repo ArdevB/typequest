@@ -81,3 +81,8 @@ export const PB_BONUS_XP = 20;
 /** Lesson XP: for passing, plus for each star earned for the first time. */
 export const LESSON_PASS_XP = 5;
 export const LESSON_STAR_XP = 10;
+
+/** Game XP: one point per correct word (scaled by accuracy²), +20 for a win, capped at 150. */
+export function gameXp(o: { wordsDone: number; accuracy: number; won: boolean }): number {
+  return Math.min(150, Math.max(0, Math.round(o.wordsDone * (o.accuracy / 100) ** 2) + (o.won ? 20 : 0)));
+}

@@ -2,7 +2,7 @@ import type { TypingEngine } from "@/engine";
 import type { ParticleLayer } from "@/lib/particles";
 import type { SoundPackId, SoundPlayer } from "@/lib/sound";
 
-export type ThemeId = "neon-cyber" | "minimal-calm";
+export type ThemeId = "neon-cyber" | "minimal-calm" | "retro-arcade" | "space-shooter" | "inferno";
 
 export interface ThemeColors {
   bg: string;

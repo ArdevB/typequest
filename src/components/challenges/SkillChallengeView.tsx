@@ -1,45 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TIER_NAMES, TIER_XP, getSkill, type SkillId, type Tier } from "@/challenges/skills";
 import type { Outcome } from "@/challenges/types";
-import { weakKeyWeights, type PerKeyStat, type RunResult } from "@/engine";
+import { weakKeyWeights, type RunResult } from "@/engine";
+import { useKeyStats } from "@/hooks/useKeyStats";
 import { useSkillProgress } from "@/hooks/useSkillProgress";
-import { getBrowserSupabase } from "@/lib/supabase/client";
-import { useAuth } from "@/stores/authStore";
 import { useChallenges } from "@/stores/challengesStore";
-import { useHistory } from "@/stores/historyStore";
 import { ChallengeRunner } from "./ChallengeRunner";
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 31);
 
-/** Key stats for Weak Key Hunt: the account's when signed in, otherwise this browser's. */
+/** Weak Key Hunt: weights from the account's key stats when signed in, otherwise this browser's. */
 function useKeyWeights(enabled: boolean): { weights: Record<string, number> | undefined; weakest: string[] } {
-  const local = useHistory((s) => s.keyStats);
-  const userId = useAuth((s) => s.userId);
-  const [remote, setRemote] = useState<Record<string, PerKeyStat> | null>(null);
-
-  useEffect(() => {
-    if (!enabled || !userId) return;
-    void getBrowserSupabase()
-      ?.from("key_stats")
-      .select("key, attempts, errors, avg_ms")
-      .then(({ data }) => {
-        if (!data) return;
-        setRemote(
-          Object.fromEntries(
-            (data as { key: string; attempts: number; errors: number; avg_ms: number }[]).map((k) => [
-              k.key,
-              { attempts: k.attempts, errors: k.errors, avgMs: Number(k.avg_ms) },
-            ]),
-          ),
-        );
-      });
-  }, [enabled, userId]);
-
+  const { stats } = useKeyStats(enabled);
   return useMemo(() => {
-    const stats = remote && Object.keys(remote).length > 0 ? remote : local;
     if (!enabled || Object.keys(stats).length === 0) return { weights: undefined, weakest: [] };
     const weights = weakKeyWeights(stats);
     const weakest = Object.entries(weights)
@@ -47,7 +23,7 @@ function useKeyWeights(enabled: boolean): { weights: Record<string, number> | un
       .slice(0, 5)
       .map(([k]) => k);
     return { weights, weakest };
-  }, [enabled, local, remote]);
+  }, [enabled, stats]);
 }
 
 export function SkillChallengeView({ skillId }: { skillId: SkillId }) {

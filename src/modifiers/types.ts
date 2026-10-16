@@ -1,7 +1,7 @@
 /**
- * Challenge modifier contract (implemented in Phase 6: Mirror, Fog, Shaky,
- * Heat timer, Random case…). Modifiers are stackable: text transforms run in
- * order and score multipliers multiply.
+ * Challenge modifier contract. Modifiers are stackable plugins: text
+ * transforms run in order, error hooks and visual effects all attach, and
+ * score multipliers multiply. They never change the engine's rules directly.
  */
 import type { EngineEvents, TypingEngine } from "@/engine";
 
@@ -15,6 +15,10 @@ export interface ChallengeModifier {
   id: string;
   name: string;
   description: string;
+  /** Short symbol for the card. */
+  icon: string;
+  /** Moves things on screen; hidden when reduced motion is on. */
+  motion?: boolean;
   /** e.g. 1.2 → +20% score. Stacked modifiers multiply. */
   scoreMultiplier: number;
   /** Change the target words before the run starts (e.g. random case). */

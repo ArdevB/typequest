@@ -58,6 +58,13 @@ export const challengePayload = z.discriminatedUnion("kind", [
 ]);
 export type ChallengePayload = z.infer<typeof challengePayload>;
 
+export const gamePayload = z.object({
+  game: z.enum(["falling-words", "boss-battle", "racing", "stickman-duel", "weekly-boss"]),
+  seed: z.number().int().nonnegative().max(2 ** 32),
+  log: z.array(keystroke).min(1).max(MAX_LOG),
+});
+export type GamePayload = z.infer<typeof gamePayload>;
+
 export interface StreakInfo {
   streak: number;
   bestStreak: number;
@@ -87,6 +94,8 @@ export interface ProgressResponse {
   stars?: number;
   passed?: boolean;
   reason?: string;
+  /** Games: best score so far for this game. */
+  isBest?: boolean;
   streak?: StreakInfo;
   achievements?: UnlockedAchievement[];
 }

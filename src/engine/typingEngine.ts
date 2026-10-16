@@ -23,6 +23,12 @@ export interface TypingEngine {
   backspace(ctrlWord?: boolean): void;
   /** Record input that was refused (paste, drop, autocorrect). Shows up in result.flags. */
   rejectInput(reason: "paste" | "drop" | "replace"): void;
+  /**
+   * Give up on the current word and move to the next (games: a falling word
+   * hit the ground). Not logged: game simulations re-trigger it
+   * deterministically when replaying.
+   */
+  skipWord(): void;
 
   reset(opts?: Partial<EngineOptions>): void;
   /** End now (quit, or the time ran out while the tab was hidden). */
@@ -343,6 +349,21 @@ export function createTypingEngine(initial: EngineOptions): TypingEngine {
 
     rejectInput(reason) {
       log.push([status === "running" ? stamp() : 0, reason, KeyKind.Rejected]);
+    },
+
+    skipWord() {
+      if (status !== "running") return;
+      const target = words[wordIndex] ?? "";
+      const cur = typed[wordIndex] ?? "";
+      breakCombo();
+      emitter.emit("wordComplete", { word: target, typed: cur, correct: false, wordIndex });
+      committed = wordIndex + 1;
+      if (wordIndex >= words.length - 1) {
+        finishAt(null);
+        return;
+      }
+      wordIndex += 1;
+      topUp();
     },
 
     reset(next) {

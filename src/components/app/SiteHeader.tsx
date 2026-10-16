@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
 import { AccountMenu } from "./AccountMenu";
-
-const SOON = ["play"] as const;
+import { MainNav, MobileNav } from "./MainNav";
 
 export function SiteHeader() {
   return (
@@ -13,26 +12,9 @@ export function SiteHeader() {
           Type<span className="text-main">Quest</span>
         </span>
       </Link>
-      <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Main">
-        <Link href="/test" className="text-text hover:text-main">
-          test
-        </Link>
-        <Link href="/learn" className="text-text hover:text-main">
-          learn
-        </Link>
-        <Link href="/challenges" className="text-text hover:text-main">
-          challenges
-        </Link>
-        <Link href="/leaderboard" className="text-text hover:text-main">
-          leaderboard
-        </Link>
-        {SOON.map((s) => (
-          <span key={s} className="cursor-default text-sub/70" title="Coming in a later phase">
-            {s}
-          </span>
-        ))}
-      </nav>
+      <MainNav />
       <div className="flex items-center gap-1">
+        <MobileNav />
         <SettingsPanel />
         <AccountMenu />
       </div>

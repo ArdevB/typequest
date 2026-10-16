@@ -13,6 +13,8 @@ export interface BurstOptions {
   /** Spread angle in radians, centered on `angle`. Default full circle. */
   spread?: number;
   angle?: number;
+  /** Square "pixel" particles instead of dots (Retro Arcade). */
+  square?: boolean;
 }
 
 interface Particle {
@@ -25,6 +27,7 @@ interface Particle {
   size: number;
   color: string;
   gravity: number;
+  square: boolean;
 }
 
 export interface ParticleLayer {
@@ -71,9 +74,14 @@ export function createParticleLayer(canvas: HTMLCanvasElement): ParticleLayer {
       const k = p.life / p.maxLife;
       ctx.globalAlpha = k;
       ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * k), 0, Math.PI * 2);
-      ctx.fill();
+      if (p.square) {
+        const sz = Math.round(p.size * 2);
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), sz, sz);
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * k), 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
     raf = particles.length > 0 ? requestAnimationFrame(frame) : 0;
@@ -101,6 +109,7 @@ export function createParticleLayer(canvas: HTMLCanvasElement): ParticleLayer {
           size: (o.size ?? 2.5) * (0.6 + Math.random() * 0.8),
           color: colors[i % colors.length] ?? "#fff",
           gravity: o.gravity ?? 260,
+          square: o.square ?? false,
         });
       }
       if (!raf && particles.length > 0) {

@@ -260,3 +260,18 @@ describe("lesson generation", () => {
     expect(count(drill)).toBeGreaterThan(count(plain));
   });
 });
+
+describe("skipWord (games)", () => {
+  it("moves to the next word, marking the skipped one as missed", () => {
+    const { engine, type } = setup(["alpha", "beta", "gamma"], { stopOnError: "letter" });
+    const done: string[] = [];
+    engine.on("wordComplete", (e) => done.push(`${e.word}:${e.correct}`));
+    type("al");
+    engine.skipWord();
+    expect(engine.getSnapshot().wordIndex).toBe(1);
+    expect(engine.getCharState(0, 3)).toBe("missed");
+    type("beta gamma");
+    expect(done).toEqual(["alpha:false", "beta:true", "gamma:true"]);
+    expect(engine.getSnapshot().status).toBe("finished");
+  });
+});

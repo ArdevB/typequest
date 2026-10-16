@@ -4,7 +4,8 @@ import { ACHIEVEMENTS_BY_ID } from "@/achievements/catalog";
 import { newlyEarned, type PlayerStats, type RunContext } from "@/achievements/check";
 import type { RunResult } from "@/engine";
 import type { LessonPayload, ProgressResponse, RunPayload, StreakInfo, UnlockedAchievement } from "@/lib/payloads";
-import { LESSON_PASS_XP, LESSON_STAR_XP, PB_BONUS_XP, levelForXp, rankFor, runXp } from "@/lib/progression";
+import { LESSON_PASS_XP, LESSON_STAR_XP, PB_BONUS_XP, gameXp, levelForXp, rankFor, runXp } from "@/lib/progression";
+import type { GameOutcome } from "@/games/types";
 import type { Stars } from "@/lessons/rating";
 
 /** Oldest timestamp accepted for a run synced from guest storage. */
@@ -106,6 +107,32 @@ export async function recordChallenge(
     p_xp_first: xpFirst,
   });
   return { xpAwarded: r.xp_awarded, firstPass: r.first_pass };
+}
+
+/** Writes a validated game. */
+export async function recordGame(
+  admin: SupabaseClient,
+  userId: string,
+  seed: number,
+  outcome: GameOutcome,
+  log: unknown,
+): Promise<{ xpAwarded: number; isBest: boolean }> {
+  const r = await rpc<{ xp_awarded: number; is_best: boolean }>(admin, "record_game", {
+    p_user: userId,
+    p_run: {
+      game: outcome.game,
+      seed,
+      score: outcome.score,
+      won: outcome.won,
+      wpm: outcome.wpm,
+      accuracy: outcome.accuracy,
+      duration_ms: outcome.durationMs,
+      words_done: outcome.wordsDone,
+      keystroke_log: log,
+    },
+    p_xp: gameXp(outcome),
+  });
+  return { xpAwarded: r.xp_awarded, isBest: r.is_best };
 }
 
 // ---------------------------------------------------------------------------

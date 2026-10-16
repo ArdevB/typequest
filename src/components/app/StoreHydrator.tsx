@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { sound } from "@/lib/sound";
 import { useChallenges } from "@/stores/challengesStore";
+import { useGames } from "@/stores/gamesStore";
 import { useHistory } from "@/stores/historyStore";
 import { useLessons } from "@/stores/lessonsStore";
 import { useHydrated } from "@/stores/hydration";
@@ -29,6 +30,7 @@ export function StoreHydrator() {
       useHistory.persist.rehydrate(),
       useLessons.persist.rehydrate(),
       useChallenges.persist.rehydrate(),
+      useGames.persist.rehydrate(),
     ]).then(() =>
       useHydrated.setState({ ready: true }),
     );

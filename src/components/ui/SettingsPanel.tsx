@@ -7,6 +7,17 @@ import { useSettings, type MotionPref } from "@/stores/settingsStore";
 import { THEME_LIST, getTheme } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
 import type { StopOnError } from "@/engine";
+import { useUnlocked } from "@/hooks/useUnlocks";
+import { UNLOCKABLES, isOutfitUnlocked, isThemeUnlocked, type MascotOutfit } from "@/unlocks/catalog";
+
+const OUTFITS: readonly { id: MascotOutfit; name: string }[] = [
+  { id: "none", name: "Plain" },
+  { id: "headphones", name: "Headphones" },
+  { id: "shades", name: "Shades" },
+  { id: "crown", name: "Crown" },
+];
+
+const requirementFor = (id: string) => UNLOCKABLES.find((u) => u.id === id)?.requirement ?? "";
 
 /** Theme swatches + quick settings popover. */
 export function SettingsPanel() {
@@ -73,28 +84,40 @@ export function SettingsPanel() {
 /** All quick settings. Used in the header popover and on /settings. */
 export function SettingsForm() {
   const s = useSettings();
+  const unlocked = useUnlocked();
   const effectivePack = s.soundPack === "theme" ? getTheme(s.themeId).config.sounds : s.soundPack;
   return (
     <>
       <Section title="Theme">
         <div className="grid grid-cols-2 gap-2">
-          {THEME_LIST.map(({ config }) => (
-            <button
-              key={config.id}
-              type="button"
-              aria-pressed={s.themeId === config.id}
-              onClick={() => s.set("themeId", config.id as ThemeId)}
-              className="rounded-lg border border-border p-2 text-left transition hover:border-main aria-pressed:border-main aria-pressed:ring-1 aria-pressed:ring-main"
-              style={{ background: config.colors.bg, color: config.colors.text }}
-            >
-              <span className="mb-1.5 flex gap-1">
-                {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c) => (
-                  <i key={c} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
-                ))}
-              </span>
-              <span className="text-sm font-medium">{config.name}</span>
-            </button>
-          ))}
+          {THEME_LIST.map(({ config }) => {
+            const open = isThemeUnlocked(config.id, unlocked);
+            return (
+              <button
+                key={config.id}
+                type="button"
+                aria-pressed={s.themeId === config.id}
+                aria-disabled={!open}
+                title={open ? config.description : `Locked — ${requirementFor(`theme:${config.id}`)}`}
+                onClick={() => open && s.set("themeId", config.id as ThemeId)}
+                className="relative overflow-hidden rounded-lg border border-border p-2 text-left transition hover:border-main aria-pressed:border-main aria-pressed:ring-1 aria-pressed:ring-main aria-disabled:cursor-not-allowed aria-disabled:hover:border-border"
+                style={{ background: config.colors.bg, color: config.colors.text }}
+              >
+                <span className={`mb-1.5 flex gap-1 ${open ? "" : "opacity-40"}`}>
+                  {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c) => (
+                    <i key={c} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
+                  ))}
+                </span>
+                <span className={`text-sm font-medium ${open ? "" : "opacity-60"}`}>{config.name}</span>
+                {!open && (
+                  <span className="mt-1 flex items-start gap-1 text-[11px] leading-tight opacity-80">
+                    <LockIcon />
+                    {requirementFor(`theme:${config.id}`)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </Section>
 
@@ -164,7 +187,39 @@ export function SettingsForm() {
         <Switch label="Colorblind-safe errors" on={s.colorblind} onChange={(v) => s.set("colorblind", v)} />
         <Switch label="Show live WPM" on={s.showLiveWpm} onChange={(v) => s.set("showLiveWpm", v)} />
       </Section>
+
+      <Section title="Keeby (mascot)">
+        <Switch label="Show Keeby while typing" on={s.mascot} onChange={(v) => s.set("mascot", v)} />
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {OUTFITS.map((o) => {
+            const open = isOutfitUnlocked(o.id, unlocked);
+            return (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={s.mascotOutfit === o.id}
+                aria-disabled={!open}
+                title={open ? o.name : `Locked — ${requirementFor(`outfit:${o.id}`)}`}
+                onClick={() => open && s.set("mascotOutfit", o.id)}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-sm text-sub transition hover:text-text aria-pressed:border-main aria-pressed:bg-main aria-pressed:text-bg aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              >
+                {!open && <LockIcon />}
+                {o.name}
+              </button>
+            );
+          })}
+        </div>
+      </Section>
     </>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" className="mt-px shrink-0">
+      <rect x="3" y="7" width="10" height="8" rx="1.5" fill="currentColor" />
+      <path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
   );
 }
 

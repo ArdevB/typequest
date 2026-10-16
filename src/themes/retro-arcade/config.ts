@@ -1,0 +1,35 @@
+import type { ThemeConfig } from "../types";
+
+export const retroArcadeConfig: ThemeConfig = {
+  id: "retro-arcade",
+  name: "Retro Arcade",
+  description: "Pixel font, CRT scanlines and chunky 8-bit pops.",
+  dark: true,
+  colors: {
+    bg: "#1a1c2c",
+    bgAlt: "#222539",
+    surface: "#262a44",
+    border: "#3b4268",
+    text: "#f4f4f4",
+    sub: "#6b7aa1",
+    main: "#ffcd75",
+    caret: "#38b764",
+    error: "#ef5d5d",
+    errorExtra: "#8f3a46",
+    errorCb: "#41a6f6",
+    combo1: "#38b764",
+    combo2: "#41a6f6",
+    combo3: "#ffcd75",
+    glow: "#ffcd75",
+  },
+  font: {
+    ui: '"Inter Variable", system-ui, sans-serif',
+    mono: '"JetBrains Mono Variable", ui-monospace, monospace',
+    display: '"Press Start 2P", "Orbitron", monospace',
+  },
+  renderer: "dom",
+  sounds: "mechanical",
+  particles: { colors: ["#38b764", "#41a6f6", "#ffcd75", "#ef7d57"], trail: true },
+  music: null,
+  caret: "block",
+};

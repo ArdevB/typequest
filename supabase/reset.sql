@@ -4,6 +4,11 @@
 --
 -- After running this, run the files in supabase/migrations again, in order.
 
+-- Phase 5
+drop function if exists public.record_game(uuid, jsonb, integer);
+drop function if exists public.game_leaderboard(text, integer);
+drop table if exists public.game_runs cascade;
+
 -- Phase 4
 drop function if exists public.touch_streak(uuid);
 drop function if exists public.ensure_daily_challenge(date);
