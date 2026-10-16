@@ -8,9 +8,21 @@ import { GOOGLE_AUTH_ENABLED } from "@/lib/supabase/env";
 import { useAuth } from "@/stores/authStore";
 
 type Mode = "signin" | "signup";
-type NameState = "idle" | "checking" | "free" | "taken" | "invalid";
+type NameState = "idle" | "checking" | "free" | "taken" | "invalid" | "unknown";
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+
+/** Turns a failed availability check into something actionable. */
+function explainCheckError(e: { message?: string; code?: string; status?: number }): string {
+  const msg = e.message ?? "";
+  if (e.code === "PGRST202" || /could not find the function/i.test(msg)) {
+    return "the database isn't set up yet — run supabase/migrations/20261016000000_core.sql in the Supabase SQL editor";
+  }
+  if (e.code === "42501" || /permission denied/i.test(msg)) return "the database blocked the check (permission denied)";
+  if (/invalid api key|jwt|apikey/i.test(msg)) return "the Supabase key in .env.local looks wrong";
+  if (/fetch|network/i.test(msg)) return "couldn't reach Supabase";
+  return msg || "unexpected error";
+}
 
 /** Only allow same-site relative redirects after sign-in. */
 function safeNext(next: string | null): string {
@@ -29,6 +41,7 @@ export function AuthForm() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [nameState, setNameState] = useState<NameState>("idle");
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(params.get("error"));
   const [notice, setNotice] = useState<string | null>(null);
@@ -50,7 +63,15 @@ export function AuthForm() {
     }
     setNameState("checking");
     const t = setTimeout(async () => {
-      const { data } = await supabase.rpc("username_available", { p_username: username });
+      const { data, error: rpcError } = await supabase.rpc("username_available", { p_username: username });
+      if (rpcError) {
+        // The check itself failed (setup problem or network) — that is not the same as "taken".
+        console.error("[auth] username check failed", rpcError);
+        setCheckError(explainCheckError(rpcError));
+        setNameState("unknown");
+        return;
+      }
+      setCheckError(null);
       setNameState(data === true ? "free" : "taken");
     }, 350);
     return () => clearTimeout(t);
@@ -86,7 +107,8 @@ export function AuthForm() {
         router.replace(next);
         router.refresh();
       } else {
-        if (nameState !== "free") throw new Error("Pick an available username first.");
+        // "unknown" is allowed: the database still guarantees unique names (it adds digits if needed).
+        if (nameState !== "free" && nameState !== "unknown") throw new Error("Pick an available username first.");
         const { data, error: err } = await supabase.auth.signUp({
           email,
           password,
@@ -125,6 +147,7 @@ export function AuthForm() {
     free: "Available!",
     taken: "Already taken",
     invalid: "3–20 letters, numbers or _",
+    unknown: `Couldn't check this name: ${checkError ?? "unknown error"}. You can still sign up.`,
   };
 
   return (

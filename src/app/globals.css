@@ -726,6 +726,9 @@ html[data-theme="neon-cyber"] .tq-star[data-on="true"] {
 .tq-hint[data-state="invalid"] {
   color: var(--error);
 }
+.tq-hint[data-state="unknown"] {
+  color: var(--combo-3);
+}
 .tq-hint[data-state="idle"],
 .tq-hint[data-state="checking"] {
   color: var(--sub);

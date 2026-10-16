@@ -351,3 +351,12 @@ grant execute on function public.set_progression(uuid, integer, text) to service
 
 grant execute on function public.leaderboard(text, text, integer) to anon, authenticated;
 grant execute on function public.username_available(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Accounts created before this migration ran get a profile too (they can pick
+-- a proper username in Settings).
+-- ---------------------------------------------------------------------------
+insert into public.profiles (id, username)
+select u.id, 'typist' || substr(replace(u.id::text, '-', ''), 1, 12)
+from auth.users u
+where not exists (select 1 from public.profiles p where p.id = u.id);
