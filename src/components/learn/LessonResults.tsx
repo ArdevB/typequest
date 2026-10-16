@@ -10,6 +10,7 @@ import { celebrate } from "@/lib/confetti";
 import { sound } from "@/lib/sound";
 import { getTheme } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
+import { ProgressStrip, type SaveState } from "@/components/progress/ProgressStrip";
 import { StarRow } from "./StarRow";
 
 interface Props {
@@ -22,6 +23,7 @@ interface Props {
   reducedMotion: boolean;
   onRetry: () => void;
   onNext: () => void;
+  save: SaveState;
 }
 
 const HEADLINES: Record<Stars, string> = {
@@ -112,6 +114,10 @@ export function LessonResults(p: Props) {
         </p>
       )}
       {unlocked && <p className="lr-item mt-4 font-display text-main">Next lesson unlocked: {next.title}</p>}
+
+      <div className="w-full">
+        <ProgressStrip save={p.save} reducedMotion={reducedMotion} />
+      </div>
 
       <div className="lr-item mt-6 flex flex-wrap justify-center gap-3">
         {passed && next ? (

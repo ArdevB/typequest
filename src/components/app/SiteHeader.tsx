@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
+import { AccountMenu } from "./AccountMenu";
 
-const SOON = ["play", "challenges", "leaderboard"] as const;
+const SOON = ["play", "challenges"] as const;
 
 export function SiteHeader() {
   return (
@@ -19,13 +20,19 @@ export function SiteHeader() {
         <Link href="/learn" className="text-text hover:text-main">
           learn
         </Link>
+        <Link href="/leaderboard" className="text-text hover:text-main">
+          leaderboard
+        </Link>
         {SOON.map((s) => (
           <span key={s} className="cursor-default text-sub/70" title="Coming in a later phase">
             {s}
           </span>
         ))}
       </nav>
-      <SettingsPanel />
+      <div className="flex items-center gap-1">
+        <SettingsPanel />
+        <AccountMenu />
+      </div>
     </header>
   );
 }

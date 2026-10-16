@@ -1,29 +1,39 @@
 import { fixedSource } from "./lessonGen";
 import { createTypingEngine } from "./typingEngine";
-import { KeyKind, type Keystroke, type RunResult, type StopOnError, type TestMode } from "./types";
+import { KeyKind, type Keystroke, type RunResult, type StopOnError, type TestMode, type WordSource } from "./types";
 
 export interface ReplayInput {
   mode: TestMode;
-  words: readonly string[];
   log: readonly Keystroke[];
+  /** The words of the run, in order. Ignored if `source` is given; unused in text mode. */
+  words?: readonly string[];
+  /** Regenerates the words (e.g. a seeded wordSource) instead of trusting a stored list. */
+  source?: WordSource;
   stopOnError?: StopOnError;
 }
 
+export interface ReplayOutcome {
+  result: RunResult | null;
+  /** The run ended on its own (last word typed / time ran out), not cut short. */
+  finishedNaturally: boolean;
+}
+
 /**
- * Feeds a stored keystroke log back through a headless engine and returns the
- * result it produces. Used for server-side score validation, ghost races and
- * replays: the engine is the single source of truth, so nothing is re-implemented.
+ * Feeds a stored keystroke log back through a headless engine. Used for
+ * server-side score validation, ghost races and replays: the engine is the
+ * single source of truth, so nothing is re-implemented.
  */
-export function replayRun(input: ReplayInput): RunResult | null {
+export function replayDetailed(input: ReplayInput): ReplayOutcome {
   let clock = 0;
   const engine = createTypingEngine({
     mode: input.mode,
-    source: fixedSource(input.words),
+    source: input.source ?? fixedSource(input.words ?? []),
     stopOnError: input.stopOnError,
     autoTick: false,
     now: () => clock,
   });
 
+  let finishedNaturally = false;
   for (const [t, key, kind] of input.log) {
     clock = t;
     engine.tick();
@@ -44,15 +54,23 @@ export function replayRun(input: ReplayInput): RunResult | null {
     }
   }
 
-  if (engine.getSnapshot().status === "running") {
+  if (engine.getSnapshot().status === "finished") {
+    finishedNaturally = true;
+  } else if (engine.getSnapshot().status === "running") {
     if (input.mode.kind === "time") {
       clock = input.mode.seconds * 1000;
       engine.tick();
+      finishedNaturally = true;
     } else {
       engine.finish();
     }
   }
   const result = engine.getResult();
   engine.destroy();
-  return result;
+  return { result, finishedNaturally };
+}
+
+/** Replays a run and returns only its result. */
+export function replayRun(input: ReplayInput): RunResult | null {
+  return replayDetailed(input).result;
 }

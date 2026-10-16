@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Keystroke, RunResult } from "@/engine";
 import { gradeFor, modeKey, type Grade } from "@/lib/grade";
+import type { RunPayload } from "@/lib/payloads";
 import { STORAGE_KEYS, safeStorage } from "@/lib/storage";
 
 export interface RunSummary {
@@ -33,8 +34,15 @@ export interface RunOutcome {
 interface HistoryState {
   runs: RunSummary[];
   bests: Record<string, BestRun>;
+  /** Valid runs made as a guest, uploaded (and re-verified) when the player signs in. */
+  unsynced: RunPayload[];
   addRun: (result: RunResult) => RunOutcome;
+  queueForSync: (payload: RunPayload) => void;
+  clearSynced: (clientIds: readonly string[]) => void;
 }
+
+/** Guest runs kept for upload. Personal bests are kept first, then the most recent. */
+const MAX_UNSYNCED = 20;
 
 const MAX_RUNS = 200;
 
@@ -56,6 +64,7 @@ export const useHistory = create<HistoryState>()(
     (set, get) => ({
       runs: [],
       bests: {},
+      unsynced: [],
       addRun: (result) => {
         const key = modeKey(result.mode);
         const summary: RunSummary = {
@@ -84,13 +93,21 @@ export const useHistory = create<HistoryState>()(
         }
         return { summary, valid, isPB, previousBest };
       },
+      queueForSync: (payload) =>
+        set((s) => {
+          const bestIds = new Set(Object.values(s.bests).map((b) => b.id));
+          const all = [payload, ...s.unsynced.filter((p) => p.clientId !== payload.clientId)];
+          const keep = [...all.filter((p) => bestIds.has(p.clientId ?? "")), ...all.filter((p) => !bestIds.has(p.clientId ?? ""))];
+          return { unsynced: keep.slice(0, MAX_UNSYNCED) };
+        }),
+      clearSynced: (ids) => set((s) => ({ unsynced: s.unsynced.filter((p) => !ids.includes(p.clientId ?? "")) })),
     }),
     {
       name: STORAGE_KEYS.history,
       storage: safeStorage,
       version: 1,
       skipHydration: true,
-      partialize: ({ runs, bests }) => ({ runs, bests }),
+      partialize: ({ runs, bests, unsynced }) => ({ runs, bests, unsynced }),
     },
   ),
 );

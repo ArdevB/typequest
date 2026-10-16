@@ -6,7 +6,9 @@ import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
 import { SiteHeader } from "@/components/app/SiteHeader";
+import { AuthProvider } from "@/components/app/AuthProvider";
 import { StoreHydrator } from "@/components/app/StoreHydrator";
+import { Toaster } from "@/components/ui/Toaster";
 import { PREPAINT_SCRIPT } from "@/lib/prepaint";
 import { DEFAULT_THEME, themeCss } from "@/themes/registry";
 
@@ -41,10 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <StoreHydrator />
+        <AuthProvider />
         <SiteHeader />
         <main id="main" className="flex w-full flex-1 flex-col px-4 pb-10 sm:px-6">
           {children}
         </main>
+        <Toaster />
       </body>
     </html>
   );

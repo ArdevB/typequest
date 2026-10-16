@@ -8,6 +8,7 @@ import { gradeFor, modeLabel } from "@/lib/grade";
 import type { RunOutcome } from "@/stores/historyStore";
 import { getTheme } from "@/themes/registry";
 import type { ThemeId } from "@/themes/types";
+import { ProgressStrip, type SaveState } from "@/components/progress/ProgressStrip";
 import { ConsistencyChart } from "./ConsistencyChart";
 import { GradeStamp } from "./GradeStamp";
 
@@ -18,6 +19,7 @@ interface Props {
   reducedMotion: boolean;
   onNext: () => void;
   onRepeat: () => void;
+  save: SaveState;
 }
 
 const fmtInt = (v: number) => String(Math.round(v));
@@ -38,7 +40,7 @@ function recordMessage(result: RunResult, o: RunOutcome): { text: string; tone: 
   return { text: `You were ${off.toFixed(1)} WPM off your record (${Math.round(o.previousBest ?? 0)}).`, tone: "off" };
 }
 
-export function ResultsScreen({ result, outcome, themeId, reducedMotion, onNext, onRepeat }: Props) {
+export function ResultsScreen({ result, outcome, themeId, reducedMotion, onNext, onRepeat, save }: Props) {
   const rootRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const stampRef = useRef<HTMLDivElement>(null);
@@ -123,6 +125,8 @@ export function ResultsScreen({ result, outcome, themeId, reducedMotion, onNext,
       <p className="r-item mt-6 text-center font-display text-lg" data-tone={record.tone}>
         <span className="tq-record">{record.text}</span>
       </p>
+
+      <ProgressStrip save={save} reducedMotion={reducedMotion} />
 
       <div className="r-item mt-6 flex flex-wrap items-center justify-center gap-3">
         <button type="button" className="tq-btn tq-btn-primary" onClick={onNext} autoFocus>

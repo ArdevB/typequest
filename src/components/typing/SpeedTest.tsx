@@ -3,7 +3,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import type { RunResult } from "@/engine";
+import type { SaveState } from "@/components/progress/ProgressStrip";
 import { ResultsScreen } from "@/components/results/ResultsScreen";
+import { beginSave, saveRun } from "@/lib/api/client";
+import type { RunPayload } from "@/lib/payloads";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useHistory, type RunOutcome } from "@/stores/historyStore";
 import { useHydrated } from "@/stores/hydration";
@@ -11,7 +14,9 @@ import { useSettings } from "@/stores/settingsStore";
 import { ModePicker } from "./ModePicker";
 import { TypingSurface } from "./TypingSurface";
 
-type View = { kind: "typing" } | { kind: "results"; result: RunResult; outcome: RunOutcome };
+const newSeed = () => Math.floor(Math.random() * 2 ** 31);
+
+type View = { kind: "typing" } | { kind: "results"; result: RunResult; outcome: RunOutcome; save: SaveState };
 
 export function SpeedTest() {
   const ready = useHydrated((s) => s.ready);
@@ -23,25 +28,47 @@ export function SpeedTest() {
   const showLiveWpm = useSettings((s) => s.showLiveWpm);
   const reducedMotion = useReducedMotion();
   const addRun = useHistory((s) => s.addRun);
+  const queueForSync = useHistory((s) => s.queueForSync);
 
   const [view, setView] = useState<View>({ kind: "typing" });
   const [runKey, setRunKey] = useState(0);
-  const [repeatWords, setRepeatWords] = useState<readonly string[] | null>(null);
+  // Same seed = same words ("repeat"); the server also uses it to verify the run.
+  const [seed, setSeed] = useState(newSeed);
 
-  const restart = useCallback((repeat: readonly string[] | null = null) => {
-    setRepeatWords(repeat);
+  const restart = useCallback((repeat = false) => {
+    if (!repeat) setSeed(newSeed());
     setRunKey((k) => k + 1);
     setView({ kind: "typing" });
   }, []);
 
   const onFinish = useCallback(
-    (result: RunResult) => setView({ kind: "results", result, outcome: addRun(result) }),
-    [addRun],
+    (result: RunResult) => {
+      const outcome = addRun(result);
+      const payload: RunPayload = {
+        mode,
+        seed,
+        punctuation,
+        numbers,
+        stopOnError,
+        log: [...result.log],
+        clientId: outcome.summary.id,
+        at: outcome.summary.at,
+      };
+      const save = beginSave({
+        valid: outcome.valid,
+        send: () => saveRun(payload),
+        queue: () => queueForSync(payload),
+        update: (next) =>
+          setView((v) => (v.kind === "results" && v.outcome.summary.id === outcome.summary.id ? { ...v, save: next } : v)),
+      });
+      setView({ kind: "results", result, outcome, save });
+    },
+    [addRun, queueForSync, mode, seed, punctuation, numbers, stopOnError],
   );
 
   // Changing mode or options always starts fresh words.
   useEffect(() => {
-    setRepeatWords(null);
+    setSeed(newSeed());
     setView({ kind: "typing" });
   }, [mode, punctuation, numbers, stopOnError]);
 
@@ -90,7 +117,7 @@ export function SpeedTest() {
                   stopOnError={stopOnError}
                   punctuation={punctuation}
                   numbers={numbers}
-                  repeatWords={repeatWords}
+                  seed={seed}
                   runKey={runKey}
                   themeId={themeId}
                   reducedMotion={reducedMotion}
@@ -109,7 +136,8 @@ export function SpeedTest() {
                   themeId={themeId}
                   reducedMotion={reducedMotion}
                   onNext={() => restart()}
-                  onRepeat={() => restart(view.result.words)}
+                  onRepeat={() => restart(true)}
+                  save={view.save}
                 />
               </motion.div>
             )}

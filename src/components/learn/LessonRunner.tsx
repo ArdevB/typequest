@@ -15,13 +15,15 @@ import { rateLesson, starGoals, type Stars } from "@/lessons/rating";
 import { useHydrated } from "@/stores/hydration";
 import { useLessons } from "@/stores/lessonsStore";
 import { useSettings } from "@/stores/settingsStore";
+import type { SaveState } from "@/components/progress/ProgressStrip";
+import { beginSave, saveLesson } from "@/lib/api/client";
 import { LessonResults } from "./LessonResults";
 import { StarRow } from "./StarRow";
 
 type Phase =
   | { kind: "intro" }
   | { kind: "typing" }
-  | { kind: "results"; result: RunResult; stars: Stars; previousStars: Stars };
+  | { kind: "results"; result: RunResult; stars: Stars; previousStars: Stars; save: SaveState };
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 31);
 
@@ -31,6 +33,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
   const ready = useHydrated((s) => s.ready);
   const progress = useLessons((s) => s.progress);
   const record = useLessons((s) => s.record);
+  const queueLesson = useLessons((s) => s.queueForSync);
   const themeId = useSettings((s) => s.themeId);
   const showLiveWpm = useSettings((s) => s.showLiveWpm);
   const reducedMotion = useReducedMotion();
@@ -60,9 +63,16 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
       if (!lesson) return;
       const stars = rateLesson(lesson, result);
       const outcome = record(lesson.id, { wpm: result.wpm, accuracy: result.accuracy, stars });
-      setPhase({ kind: "results", result, stars, previousStars: outcome.previousStars });
+      const payload = { lessonId: lesson.id, seed, log: [...result.log] };
+      const save = beginSave({
+        valid: result.flags.pasteAttempts === 0,
+        send: () => saveLesson(payload),
+        queue: () => queueLesson(payload, stars),
+        update: (next) => setPhase((p) => (p.kind === "results" && p.result === result ? { ...p, save: next } : p)),
+      });
+      setPhase({ kind: "results", result, stars, previousStars: outcome.previousStars, save });
     },
-    [lesson, record],
+    [lesson, record, seed, queueLesson],
   );
 
   // Keyboard: Enter/Space starts from the intro; Tab/Esc restarts; Enter continues from results.
@@ -194,6 +204,7 @@ export function LessonRunner({ lessonId }: { lessonId: string }) {
               result={phase.result}
               stars={phase.stars}
               previousStars={phase.previousStars}
+              save={phase.save}
               next={next}
               themeId={themeId}
               reducedMotion={reducedMotion}

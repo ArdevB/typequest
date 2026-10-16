@@ -28,8 +28,6 @@ export function SettingsPanel() {
     };
   }, [open]);
 
-  const effectivePack = s.soundPack === "theme" ? getTheme(s.themeId).config.sounds : s.soundPack;
-
   return (
     <div ref={panelRef} className="tq-chrome relative">
       <div className="flex items-center gap-1">
@@ -64,98 +62,109 @@ export function SettingsPanel() {
             transition={{ duration: 0.16 }}
             className="absolute right-0 top-11 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-4 shadow-2xl"
           >
-            <Section title="Theme">
-              <div className="grid grid-cols-2 gap-2">
-                {THEME_LIST.map(({ config }) => (
-                  <button
-                    key={config.id}
-                    type="button"
-                    aria-pressed={s.themeId === config.id}
-                    onClick={() => s.set("themeId", config.id as ThemeId)}
-                    className="rounded-lg border border-border p-2 text-left transition hover:border-main aria-pressed:border-main aria-pressed:ring-1 aria-pressed:ring-main"
-                    style={{ background: config.colors.bg, color: config.colors.text }}
-                  >
-                    <span className="mb-1.5 flex gap-1">
-                      {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c) => (
-                        <i key={c} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
-                      ))}
-                    </span>
-                    <span className="text-sm font-medium">{config.name}</span>
-                  </button>
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Key sounds">
-              <div className="flex flex-wrap gap-1.5">
-                {SOUND_PACKS.map((p) => (
-                  <Chip
-                    key={p.id}
-                    active={s.soundOn && effectivePack === p.id}
-                    onClick={() => {
-                      s.set("soundPack", p.id as SoundPackId);
-                      s.set("soundOn", true);
-                      setTimeout(() => sound.play("key"), 60);
-                    }}
-                  >
-                    {p.name}
-                  </Chip>
-                ))}
-              </div>
-              <label className="mt-3 flex items-center gap-3 text-sm text-sub">
-                Volume
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={s.volume}
-                  onChange={(e) => s.set("volume", Number(e.target.value))}
-                  className="flex-1 accent-[var(--main)]"
-                />
-              </label>
-            </Section>
-
-            <Section title="Mistakes">
-              <div className="flex flex-wrap gap-1.5">
-                {(
-                  [
-                    ["off", "Keep going"],
-                    ["letter", "Stop on letter"],
-                    ["word", "Stop on word"],
-                  ] as const satisfies readonly (readonly [StopOnError, string])[]
-                ).map(([v, label]) => (
-                  <Chip key={v} active={s.stopOnError === v} onClick={() => s.set("stopOnError", v)}>
-                    {label}
-                  </Chip>
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Motion">
-              <div className="flex flex-wrap gap-1.5">
-                {(
-                  [
-                    ["system", "Match system"],
-                    ["reduce", "Reduced"],
-                    ["full", "Full"],
-                  ] as const satisfies readonly (readonly [MotionPref, string])[]
-                ).map(([v, label]) => (
-                  <Chip key={v} active={s.motion === v} onClick={() => s.set("motion", v)}>
-                    {label}
-                  </Chip>
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Display">
-              <Switch label="Colorblind-safe errors" on={s.colorblind} onChange={(v) => s.set("colorblind", v)} />
-              <Switch label="Show live WPM" on={s.showLiveWpm} onChange={(v) => s.set("showLiveWpm", v)} />
-            </Section>
+            <SettingsForm />
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** All quick settings. Used in the header popover and on /settings. */
+export function SettingsForm() {
+  const s = useSettings();
+  const effectivePack = s.soundPack === "theme" ? getTheme(s.themeId).config.sounds : s.soundPack;
+  return (
+    <>
+      <Section title="Theme">
+        <div className="grid grid-cols-2 gap-2">
+          {THEME_LIST.map(({ config }) => (
+            <button
+              key={config.id}
+              type="button"
+              aria-pressed={s.themeId === config.id}
+              onClick={() => s.set("themeId", config.id as ThemeId)}
+              className="rounded-lg border border-border p-2 text-left transition hover:border-main aria-pressed:border-main aria-pressed:ring-1 aria-pressed:ring-main"
+              style={{ background: config.colors.bg, color: config.colors.text }}
+            >
+              <span className="mb-1.5 flex gap-1">
+                {[config.colors.main, config.colors.caret, config.colors.sub, config.colors.error].map((c) => (
+                  <i key={c} className="inline-block h-3 w-3 rounded-full" style={{ background: c }} />
+                ))}
+              </span>
+              <span className="text-sm font-medium">{config.name}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Key sounds">
+        <div className="flex flex-wrap gap-1.5">
+          {SOUND_PACKS.map((p) => (
+            <Chip
+              key={p.id}
+              active={s.soundOn && effectivePack === p.id}
+              onClick={() => {
+                s.set("soundPack", p.id as SoundPackId);
+                s.set("soundOn", true);
+                setTimeout(() => sound.play("key"), 60);
+              }}
+            >
+              {p.name}
+            </Chip>
+          ))}
+        </div>
+        <label className="mt-3 flex items-center gap-3 text-sm text-sub">
+          Volume
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={s.volume}
+            onChange={(e) => s.set("volume", Number(e.target.value))}
+            className="flex-1 accent-[var(--main)]"
+          />
+        </label>
+      </Section>
+
+      <Section title="Mistakes">
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ["off", "Keep going"],
+              ["letter", "Stop on letter"],
+              ["word", "Stop on word"],
+            ] as const satisfies readonly (readonly [StopOnError, string])[]
+          ).map(([v, label]) => (
+            <Chip key={v} active={s.stopOnError === v} onClick={() => s.set("stopOnError", v)}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Motion">
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ["system", "Match system"],
+              ["reduce", "Reduced"],
+              ["full", "Full"],
+            ] as const satisfies readonly (readonly [MotionPref, string])[]
+          ).map(([v, label]) => (
+            <Chip key={v} active={s.motion === v} onClick={() => s.set("motion", v)}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Display">
+        <Switch label="Colorblind-safe errors" on={s.colorblind} onChange={(v) => s.set("colorblind", v)} />
+        <Switch label="Show live WPM" on={s.showLiveWpm} onChange={(v) => s.set("showLiveWpm", v)} />
+      </Section>
+    </>
   );
 }
 

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   attachInput,
   createTypingEngine,
-  fixedSource,
   wordSource,
   type RunResult,
   type StopOnError,
@@ -23,8 +22,8 @@ export interface TypingSurfaceProps {
   stopOnError: StopOnError;
   punctuation?: boolean;
   numbers?: boolean;
-  /** Words to retype (the "repeat test" button). null = fresh words. */
-  repeatWords?: readonly string[] | null;
+  /** Seed for the random words (time/words modes). Same seed = same words; the server uses it to verify runs. */
+  seed?: number;
   /** Bump to restart. */
   runKey: number;
   themeId: ThemeId;
@@ -44,7 +43,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
     stopOnError,
     punctuation = false,
     numbers = false,
-    repeatWords = null,
+    seed,
     runKey,
     themeId,
     reducedMotion,
@@ -80,7 +79,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
     const e = createTypingEngine({
       mode,
-      source: repeatWords ? fixedSource(repeatWords) : wordSource({ punctuation, numbers }),
+      source: wordSource({ punctuation, numbers, seed }),
       stopOnError,
     });
     const renderer = createWordsRenderer(wordsEl, e, getTheme(themeId).config.caret);
@@ -150,7 +149,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       onEngineRef.current?.(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mode is tracked by kind + value
-  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, repeatWords, themeId]);
+  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, seed, themeId]);
 
   // Theme effects: re-attached when the theme or motion preference changes.
   useEffect(() => {
