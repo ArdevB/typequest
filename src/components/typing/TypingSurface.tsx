@@ -24,6 +24,10 @@ export interface TypingSurfaceProps {
   numbers?: boolean;
   /** Seed for the random words (time/words modes). Same seed = same words; the server uses it to verify runs. */
   seed?: number;
+  /** Weight words toward these keys (Weak Key Hunt). */
+  keyWeights?: Readonly<Record<string, number>>;
+  /** Blind mode: hide right/wrong feedback. */
+  blind?: boolean;
   /** Bump to restart. */
   runKey: number;
   themeId: ThemeId;
@@ -44,6 +48,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
     punctuation = false,
     numbers = false,
     seed,
+    keyWeights,
+    blind = false,
     runKey,
     themeId,
     reducedMotion,
@@ -79,7 +85,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
     const e = createTypingEngine({
       mode,
-      source: wordSource({ punctuation, numbers, seed }),
+      source: wordSource({ punctuation, numbers, seed, keyWeights }),
       stopOnError,
     });
     const renderer = createWordsRenderer(wordsEl, e, getTheme(themeId).config.caret);
@@ -149,7 +155,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       onEngineRef.current?.(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mode is tracked by kind + value
-  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, seed, themeId]);
+  }, [runKey, mode.kind, modeValue, stopOnError, punctuation, numbers, seed, keyWeights, themeId]);
 
   // Theme effects: re-attached when the theme or motion preference changes.
   useEffect(() => {
@@ -208,7 +214,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
       : `0/${mode.kind === "words" ? mode.count : mode.text.trim().split(/\s+/).length}`;
 
   return (
-    <div ref={rootRef} className="tq-surface" data-focused={focused ? "true" : "false"} data-status="idle">
+    <div
+      ref={rootRef}
+      className="tq-surface"
+      data-focused={focused ? "true" : "false"}
+      data-status="idle"
+      data-blind={blind ? "true" : undefined}
+    >
       <div className="mb-3 flex h-9 items-end gap-5 font-mono text-main">
         <span ref={progressRef} className="text-2xl tabular-nums" aria-label="Progress">
           {initialProgress}

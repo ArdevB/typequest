@@ -39,11 +39,22 @@ export function checkLog(log: readonly Keystroke[], maxMs?: number): string | nu
   return null;
 }
 
+export interface ReplaySpec {
+  mode: { kind: "time"; seconds: 15 | 30 | 60 | 120 } | { kind: "words"; count: 10 | 25 | 50 | 100 };
+  seed: number;
+  punctuation: boolean;
+  numbers: boolean;
+  stopOnError: "off" | "letter" | "word";
+  log: readonly Keystroke[];
+  keyWeights?: Readonly<Record<string, number>>;
+}
+
 /**
- * Validates a speed test: regenerates its words from the seed, replays the
- * keystroke log through the engine and returns the engine's own result.
+ * Regenerates a run's words from its seed and replays the keystroke log
+ * through the engine. Rejects tampered or inhuman logs. The caller decides
+ * what counts as a pass.
  */
-export function validateRun(p: RunPayload): Validation<RunResult> {
+export function replayChecked(p: ReplaySpec): Validation<{ result: RunResult; finishedNaturally: boolean }> {
   const maxMs = p.mode.kind === "time" ? p.mode.seconds * 1000 : undefined;
   const logProblem = checkLog(p.log, maxMs);
   if (logProblem) return { ok: false, reason: logProblem };
@@ -52,11 +63,22 @@ export function validateRun(p: RunPayload): Validation<RunResult> {
     mode: p.mode,
     log: p.log,
     stopOnError: p.stopOnError,
-    source: wordSource({ seed: p.seed, punctuation: p.punctuation, numbers: p.numbers }),
+    source: wordSource({ seed: p.seed, punctuation: p.punctuation, numbers: p.numbers, keyWeights: p.keyWeights }),
   });
   if (!result) return { ok: false, reason: "run did not start" };
-  if (!finishedNaturally) return { ok: false, reason: "run was not finished" };
   if (result.wpm > MAX_WPM || result.rawWpm > MAX_WPM * 1.2) return { ok: false, reason: "speed is not humanly possible" };
+  return { ok: true, value: { result, finishedNaturally } };
+}
+
+/**
+ * Validates a speed test: regenerates its words from the seed, replays the
+ * keystroke log through the engine and returns the engine's own result.
+ */
+export function validateRun(p: RunPayload): Validation<RunResult> {
+  const r = replayChecked(p);
+  if (!r.ok) return r;
+  const { result, finishedNaturally } = r.value;
+  if (!finishedNaturally) return { ok: false, reason: "run was not finished" };
   if (result.accuracy < 50) return { ok: false, reason: "accuracy below 50%" };
   if (result.wpm <= 0) return { ok: false, reason: "no correct words" };
   return { ok: true, value: result };

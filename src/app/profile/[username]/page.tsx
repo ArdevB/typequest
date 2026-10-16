@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VirtualKeyboard } from "@/components/keyboard/VirtualKeyboard";
+import { AchievementGrid } from "@/components/profile/AchievementGrid";
 import { WpmHistoryChart } from "@/components/profile/WpmHistoryChart";
+import { StreakBadge } from "@/components/progress/StreakBadge";
 import { LevelBar } from "@/components/progress/LevelBar";
 import { LevelBadge, RankBadge } from "@/components/progress/RankBadge";
 import { NotConfigured } from "@/components/app/NotConfigured";
@@ -49,12 +51,16 @@ export default async function ProfilePage({ params }: Params) {
   const viewerId = await getUserId(supabase);
   const isOwner = viewerId === profile.id;
 
-  const [recentQ, topQ, countQ, keysQ] = await Promise.all([
+  const [recentQ, topQ, countQ, keysQ, achQ] = await Promise.all([
     supabase.from("runs").select(RUN_COLUMNS).eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30).returns<RunRow[]>(),
     supabase.from("runs").select(RUN_COLUMNS).eq("user_id", profile.id).eq("punctuation", false).eq("numbers", false).order("wpm", { ascending: false }).limit(200).returns<RunRow[]>(),
     supabase.from("runs").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
     isOwner ? supabase.from("key_stats").select("key, attempts, errors, avg_ms").returns<KeyStatRow[]>() : Promise.resolve({ data: null }),
+    supabase.from("user_achievements").select("achievement_id, unlocked_at").eq("user_id", profile.id),
   ]);
+  const owned = new Map<string, string>(
+    ((achQ.data ?? []) as { achievement_id: string; unlocked_at: string }[]).map((a) => [a.achievement_id, a.unlocked_at]),
+  );
 
   const recent = recentQ.data ?? [];
   const bests = new Map<string, RunRow>();
@@ -84,6 +90,8 @@ export default async function ProfilePage({ params }: Params) {
           <h1 className="truncate font-display text-3xl font-bold text-text">{profile.username}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-sub">
             <RankBadge rank={rankFor(rating)} />
+            <StreakBadge profile={profile} />
+            {profile.best_streak > 0 && <span>best streak {profile.best_streak}</span>}
             {rating > 0 && <span>rating {rating.toFixed(1)} wpm</span>}
             {upcoming && rating > 0 && (
               <span>
@@ -136,6 +144,8 @@ export default async function ProfilePage({ params }: Params) {
           points={[...recent].reverse().map((r) => ({ wpm: Number(r.wpm), accuracy: Number(r.accuracy), at: r.created_at }))}
         />
       </section>
+
+      <AchievementGrid owned={owned} />
 
       {isOwner && (
         <section aria-labelledby="keys-title" className="tq-card">

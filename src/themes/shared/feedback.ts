@@ -54,6 +54,8 @@ export function attachCoreFeedback(
       setTier(comboTier(engine.getSnapshot().combo));
     }),
     engine.on("error", () => {
+      // Blind mode hides mistakes: no sound, no pulse.
+      if (root.dataset.blind === "true") return;
       sound.play("error", false);
       if (opts.errorPulse !== "off") {
         root.animate(

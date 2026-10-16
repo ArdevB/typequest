@@ -44,8 +44,40 @@ export const syncPayload = z.object({
 });
 export type SyncPayload = z.infer<typeof syncPayload>;
 
+export const challengePayload = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("daily"), challengeId: z.string().uuid(), log: z.array(keystroke).min(1).max(MAX_LOG) }),
+  z.object({
+    kind: z.literal("skill"),
+    skillId: z.string().min(1).max(40),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    seed: z.number().int().nonnegative().max(2 ** 32),
+    log: z.array(keystroke).min(1).max(MAX_LOG),
+    /** Weak Key Hunt: the key weights the words were generated with. */
+    keyWeights: z.record(z.string().min(1).max(2), z.number().min(1).max(8)).optional(),
+  }),
+]);
+export type ChallengePayload = z.infer<typeof challengePayload>;
+
+export interface StreakInfo {
+  streak: number;
+  bestStreak: number;
+  freezes: number;
+  /** The streak grew today with this activity. */
+  changed: boolean;
+  /** 3, 7, 30 or 100 when a milestone was just reached. */
+  milestone: number | null;
+  freezesUsed: number;
+}
+
+export interface UnlockedAchievement {
+  id: string;
+  name: string;
+  xp: number;
+}
+
 /** What the API returns after recording something. */
 export interface ProgressResponse {
+  /** Total XP gained by this request (activity + streak milestone + achievements). */
   xpAwarded: number;
   xp: number;
   level: number;
@@ -53,4 +85,8 @@ export interface ProgressResponse {
   rank: string;
   isPB?: boolean;
   stars?: number;
+  passed?: boolean;
+  reason?: string;
+  streak?: StreakInfo;
+  achievements?: UnlockedAchievement[];
 }

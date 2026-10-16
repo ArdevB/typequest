@@ -10,6 +10,8 @@ export interface ProfileRow {
   rating_wpm: number;
   streak: number;
   best_streak: number;
+  streak_freezes?: number;
+  last_active_on?: string | null;
   selected_theme: string;
   created_at: string;
 }
@@ -51,6 +53,6 @@ export interface KeyStatRow {
   avg_ms: number;
 }
 
-export const PROFILE_COLUMNS = "id, username, level, xp, rank, rating_wpm, streak, best_streak, selected_theme, created_at";
+export const PROFILE_COLUMNS = "*";
 export const RUN_COLUMNS =
   "id, user_id, mode, mode_value, mode_key, punctuation, numbers, wpm, raw, accuracy, consistency, duration_ms, max_combo, xp_awarded, created_at";

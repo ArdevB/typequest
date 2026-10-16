@@ -20,7 +20,9 @@ function explainCheckError(e: { message?: string; code?: string; status?: number
   }
   if (e.code === "42501" || /permission denied/i.test(msg)) return "the database blocked the check (permission denied)";
   if (/invalid api key|jwt|apikey/i.test(msg)) return "the Supabase key in .env.local looks wrong";
-  if (/fetch|network/i.test(msg)) return "couldn't reach Supabase";
+  if (/fetch|network/i.test(msg)) {
+    return "couldn't reach Supabase — check NEXT_PUBLIC_SUPABASE_URL in .env.local (it looks like https://<project-ref>.supabase.co)";
+  }
   return msg || "unexpected error";
 }
 
@@ -66,7 +68,7 @@ export function AuthForm() {
       const { data, error: rpcError } = await supabase.rpc("username_available", { p_username: username });
       if (rpcError) {
         // The check itself failed (setup problem or network) — that is not the same as "taken".
-        console.error("[auth] username check failed", rpcError);
+        console.warn("[auth] username check failed:", rpcError.message, rpcError.code ?? "");
         setCheckError(explainCheckError(rpcError));
         setNameState("unknown");
         return;

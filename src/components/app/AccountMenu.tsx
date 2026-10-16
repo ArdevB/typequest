@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LevelBadge } from "@/components/progress/RankBadge";
+import { StreakBadge } from "@/components/progress/StreakBadge";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useAuth } from "@/stores/authStore";
 
@@ -57,6 +58,7 @@ export function AccountMenu() {
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
       >
+        {profile && <StreakBadge profile={profile} className="mr-1" />}
         <LevelBadge level={profile?.level ?? 1} size={26} />
         <span className="max-w-28 truncate">{profile?.username ?? "Account"}</span>
       </button>
@@ -75,6 +77,9 @@ export function AccountMenu() {
                 Profile
               </Link>
             )}
+            <Link role="menuitem" href="/challenges" className="block px-4 py-2 text-sm text-text hover:bg-bg-alt">
+              Challenges
+            </Link>
             <Link role="menuitem" href="/leaderboard" className="block px-4 py-2 text-sm text-text hover:bg-bg-alt">
               Leaderboard
             </Link>

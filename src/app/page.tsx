@@ -5,7 +5,7 @@ const PATH = [
   { step: "02", title: "Practice", body: "Drills built from your weakest keys, with a heatmap of where the mistakes happen.", ready: false },
   { step: "03", title: "Speed test", body: "15 to 120 seconds or 10 to 100 words. Live WPM, a consistency graph and an S–C grade.", ready: true },
   { step: "04", title: "Play", body: "Blast falling words, fight a boss with every correct word, race your own ghost.", ready: false },
-  { step: "05", title: "Challenges", body: "A daily text everyone types, weekly bosses, and chaos modifiers for bigger scores.", ready: false },
+  { step: "05", title: "Challenges", body: "A daily text everyone types, skill trials with three tiers, and a streak to protect.", ready: true },
 ] as const;
 
 export default function Home() {

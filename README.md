@@ -2,7 +2,7 @@
 
 A gamified typing trainer — from learning hand placement to high-speed tests.
 
-**Status:** Phase 3 — Speed Test, Learn mode, and accounts: Supabase sign-in, saved runs, XP/levels/ranks, profiles and leaderboards.
+**Status:** Phase 4 — Speed Test, Learn, accounts/XP/leaderboards, plus daily challenges, skill challenges, achievements and streaks.
 
 ## Run it
 
@@ -65,6 +65,17 @@ directly (Row Level Security). Guest runs and lessons are kept locally and re-ve
 - `src/server/` — run/lesson validation (`validateRun.ts`) and database writes (`record.ts`).
 - `src/lib/progression.ts` — XP per run/lesson, level curve, ranks (Bronze < 30, Silver 30+, Gold 50+, Diamond 70+,
   Master 100+ WPM, from the average of your best three 30s+ time tests).
+
+## Challenges, achievements, streaks (Phase 4)
+
+Database: run `supabase/migrations/20261016020000_challenges.sql` after the core migration. Optionally enable the
+`pg_cron` extension and run `supabase/cron/daily_challenge.sql` to create each daily challenge at midnight Nepal time
+(the app also creates today's challenge on demand, so this is only a safety net).
+
+- `src/challenges/` — daily rotation helpers, the six skill challenges (tiers, setup, pass/fail), live guards.
+- `src/achievements/` — achievement catalog (mirrored in the migration; a test keeps them in sync) and unlock rules.
+- `src/server/validateChallenge.ts` — replays challenge attempts with the challenge's own seed and rules.
+- Streaks update on any saved activity (`touch_streak`); a streak freeze covers one missed day.
 
 ## Ideas queued for later phases
 

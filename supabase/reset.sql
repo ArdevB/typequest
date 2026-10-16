@@ -2,8 +2,22 @@
 -- lesson progress). Use it only to start over on a test project, or when an
 -- older/other "profiles" table is in the way. Sign-in accounts (auth.users) are kept.
 --
--- After running this, run supabase/migrations/20261016000000_core.sql again.
+-- After running this, run the files in supabase/migrations again, in order.
 
+-- Phase 4
+drop function if exists public.touch_streak(uuid);
+drop function if exists public.ensure_daily_challenge(date);
+drop function if exists public.record_challenge_attempt(uuid, uuid, text, integer, jsonb, integer);
+drop function if exists public.challenge_leaderboard(uuid, integer);
+drop function if exists public.grant_achievements(uuid, text[]);
+drop function if exists public.player_stats(uuid);
+drop table if exists public.user_achievements cascade;
+drop table if exists public.achievements cascade;
+drop table if exists public.challenge_attempts cascade;
+drop table if exists public.challenges cascade;
+drop function if exists public.npt_today();
+
+-- Phase 3
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.username_available(text);

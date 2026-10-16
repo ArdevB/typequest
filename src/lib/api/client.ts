@@ -1,4 +1,4 @@
-import type { LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
+import type { ChallengePayload, LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
 import type { SaveState } from "@/components/progress/ProgressStrip";
 import { useAuth } from "@/stores/authStore";
 import { toast } from "@/stores/toastStore";
@@ -18,10 +18,31 @@ async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T 
   }
 }
 
-/** Updates the cached profile after the server awards XP. */
+/** Updates the cached profile after the server awards XP, and celebrates streaks and achievements. */
 function applyProgress(p: ProgressResponse): void {
   const { profile, set } = useAuth.getState();
-  if (profile) set({ profile: { ...profile, xp: p.xp, level: p.level, rank: p.rank as typeof profile.rank } });
+  if (profile) {
+    set({
+      profile: {
+        ...profile,
+        xp: p.xp,
+        level: p.level,
+        rank: p.rank as typeof profile.rank,
+        ...(p.streak ? { streak: p.streak.streak, best_streak: p.streak.bestStreak, streak_freezes: p.streak.freezes } : {}),
+      },
+    });
+  }
+  for (const a of p.achievements ?? []) {
+    toast({ title: `Achievement unlocked: ${a.name}`, body: `+${a.xp} XP`, tone: "level" }, 6000);
+  }
+  if (p.streak?.freezesUsed) {
+    toast({ title: "A streak freeze saved your streak", body: `${p.streak.freezesUsed} freeze${p.streak.freezesUsed > 1 ? "s" : ""} used`, tone: "info" });
+  }
+  if (p.streak?.milestone) {
+    toast({ title: `${p.streak.milestone}-day streak!`, body: "Milestone reward added. Keep it going tomorrow.", tone: "level" }, 6000);
+  } else if (p.streak?.changed && p.streak.streak > 1) {
+    toast({ title: `${p.streak.streak}-day streak`, tone: "success" }, 2500);
+  }
 }
 
 export async function saveRun(payload: RunPayload): Promise<SaveResult> {
@@ -32,6 +53,12 @@ export async function saveRun(payload: RunPayload): Promise<SaveResult> {
 
 export async function saveLesson(payload: LessonPayload): Promise<SaveResult> {
   const r = await post<ProgressResponse>("/api/lessons", payload);
+  if (r.ok) applyProgress(r.data);
+  return r;
+}
+
+export async function saveChallenge(payload: ChallengePayload): Promise<SaveResult> {
+  const r = await post<ProgressResponse>("/api/challenges", payload);
   if (r.ok) applyProgress(r.data);
   return r;
 }

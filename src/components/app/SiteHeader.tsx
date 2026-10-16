@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SettingsPanel } from "@/components/ui/SettingsPanel";
 import { AccountMenu } from "./AccountMenu";
 
-const SOON = ["play", "challenges"] as const;
+const SOON = ["play"] as const;
 
 export function SiteHeader() {
   return (
@@ -19,6 +19,9 @@ export function SiteHeader() {
         </Link>
         <Link href="/learn" className="text-text hover:text-main">
           learn
+        </Link>
+        <Link href="/challenges" className="text-text hover:text-main">
+          challenges
         </Link>
         <Link href="/leaderboard" className="text-text hover:text-main">
           leaderboard

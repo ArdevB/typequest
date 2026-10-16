@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Keystroke, RunResult } from "@/engine";
+import type { Keystroke, PerKeyStat, RunResult } from "@/engine";
 import { gradeFor, modeKey, type Grade } from "@/lib/grade";
 import type { RunPayload } from "@/lib/payloads";
 import { STORAGE_KEYS, safeStorage } from "@/lib/storage";
@@ -36,6 +36,8 @@ interface HistoryState {
   bests: Record<string, BestRun>;
   /** Valid runs made as a guest, uploaded (and re-verified) when the player signs in. */
   unsynced: RunPayload[];
+  /** Per-key totals across valid runs in this browser (Weak Key Hunt for guests). */
+  keyStats: Record<string, PerKeyStat>;
   addRun: (result: RunResult) => RunOutcome;
   queueForSync: (payload: RunPayload) => void;
   clearSynced: (clientIds: readonly string[]) => void;
@@ -45,6 +47,24 @@ interface HistoryState {
 const MAX_UNSYNCED = 20;
 
 const MAX_RUNS = 200;
+
+function mergeKeyStats(a: Record<string, PerKeyStat>, b: Record<string, PerKeyStat>): Record<string, PerKeyStat> {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    const p = out[k];
+    if (!p) {
+      out[k] = { ...v };
+      continue;
+    }
+    const attempts = p.attempts + v.attempts;
+    out[k] = {
+      attempts,
+      errors: p.errors + v.errors,
+      avgMs: attempts ? Math.round((p.avgMs * p.attempts + v.avgMs * v.attempts) / attempts) : 0,
+    };
+  }
+  return out;
+}
 
 /** Runs with pasted input, or that didn't really happen, never count. */
 export function isValidRun(r: RunResult): boolean {
@@ -65,6 +85,7 @@ export const useHistory = create<HistoryState>()(
       runs: [],
       bests: {},
       unsynced: [],
+      keyStats: {},
       addRun: (result) => {
         const key = modeKey(result.mode);
         const summary: RunSummary = {
@@ -86,6 +107,7 @@ export const useHistory = create<HistoryState>()(
         if (valid) {
           set((s) => ({
             runs: [summary, ...s.runs].slice(0, MAX_RUNS),
+            keyStats: mergeKeyStats(s.keyStats, result.perKey),
             bests: isPB
               ? { ...s.bests, [key]: { ...summary, words: [...result.words], log: [...result.log] } }
               : s.bests,
@@ -107,7 +129,7 @@ export const useHistory = create<HistoryState>()(
       storage: safeStorage,
       version: 1,
       skipHydration: true,
-      partialize: ({ runs, bests, unsynced }) => ({ runs, bests, unsynced }),
+      partialize: ({ runs, bests, unsynced, keyStats }) => ({ runs, bests, unsynced, keyStats }),
     },
   ),
 );

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { lessonPayload } from "@/lib/payloads";
 import { jsonError, readJson, requireUser } from "@/server/http";
-import { recordLesson } from "@/server/record";
+import { finalize, recordLesson } from "@/server/record";
 import { validateLesson } from "@/server/validateRun";
 
 /** Save a lesson attempt. The lesson text is rebuilt from its seed and the log replayed to rate it. */
@@ -22,9 +22,9 @@ export async function POST(req: Request) {
   if (!check.ok) return jsonError(`Lesson not accepted: ${check.reason}.`, 422);
 
   try {
-    return NextResponse.json(
-      await recordLesson(auth.admin, auth.userId, parsed.data, check.value.result, check.value.stars),
-    );
+    const saved = await recordLesson(auth.admin, auth.userId, parsed.data, check.value.result, check.value.stars);
+    const progress = await finalize(auth.admin, auth.userId, saved.xpAwarded);
+    return NextResponse.json({ ...progress, stars: saved.stars });
   } catch (e) {
     console.error("[api/lessons]", e);
     return jsonError("Couldn't save the lesson. Try again in a moment.", 500);

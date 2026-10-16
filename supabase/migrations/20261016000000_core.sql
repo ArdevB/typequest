@@ -357,6 +357,6 @@ grant execute on function public.username_available(text) to anon, authenticated
 -- a proper username in Settings).
 -- ---------------------------------------------------------------------------
 insert into public.profiles (id, username)
-select u.id, 'typist' || substr(replace(u.id::text, '-', ''), 1, 12)
+select u.id, 'typist' || substr(md5(u.id::text), 1, 14)
 from auth.users u
 where not exists (select 1 from public.profiles p where p.id = u.id);

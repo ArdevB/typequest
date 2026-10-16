@@ -31,4 +31,5 @@ export const STORAGE_KEYS = {
   settings: "tq-settings",
   history: "tq-history",
   lessons: "tq-lessons",
+  challenges: "tq-challenges",
 } as const;

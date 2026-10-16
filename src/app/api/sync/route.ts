@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { syncPayload, type ProgressResponse } from "@/lib/payloads";
+import type { RunContext } from "@/achievements/check";
+import { syncPayload } from "@/lib/payloads";
 import { jsonError, readJson, requireUser } from "@/server/http";
-import { recordLesson, recordRun } from "@/server/record";
+import { finalize, recordLesson, recordRun } from "@/server/record";
 import { validateLesson, validateRun } from "@/server/validateRun";
 
 /**
@@ -24,9 +25,8 @@ export async function POST(req: Request) {
   let runsSaved = 0;
   let lessonsSaved = 0;
   let rejected = 0;
-  let xpAwarded = 0;
-  let last: ProgressResponse | null = null;
-  let leveledUp = false;
+  let activityXp = 0;
+  const contexts: RunContext[] = [];
 
   try {
     // Oldest first, so personal bests and XP accumulate in order.
@@ -40,9 +40,8 @@ export async function POST(req: Request) {
       const saved = await recordRun(auth.admin, auth.userId, p, check.value);
       if (!saved) continue; // already synced earlier
       runsSaved += 1;
-      xpAwarded += saved.xpAwarded;
-      leveledUp ||= saved.leveledUp;
-      last = saved;
+      activityXp += saved.xpAwarded;
+      contexts.push(saved.context);
     }
     for (const p of parsed.data.lessons) {
       const check = validateLesson(p);
@@ -52,18 +51,12 @@ export async function POST(req: Request) {
       }
       const saved = await recordLesson(auth.admin, auth.userId, p, check.value.result, check.value.stars);
       lessonsSaved += 1;
-      xpAwarded += saved.xpAwarded;
-      leveledUp ||= saved.leveledUp;
-      last = saved;
+      activityXp += saved.xpAwarded;
     }
+    const progress = await finalize(auth.admin, auth.userId, activityXp, contexts);
+    return NextResponse.json({ ...progress, runsSaved, lessonsSaved, rejected });
   } catch (e) {
     console.error("[api/sync]", e);
     return jsonError("Couldn't upload your guest progress. It's still saved in this browser.", 500);
   }
-
-  if (!last) {
-    const { data } = await auth.admin.from("profiles").select("xp, level, rank").eq("id", auth.userId).single();
-    last = { xpAwarded: 0, xp: data?.xp ?? 0, level: data?.level ?? 1, rank: data?.rank ?? "unranked", leveledUp: false };
-  }
-  return NextResponse.json({ ...last, xpAwarded, leveledUp, runsSaved, lessonsSaved, rejected });
 }
