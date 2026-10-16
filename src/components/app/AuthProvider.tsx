@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { syncGuestProgress } from "@/lib/api/client";
-import { getBrowserSupabase } from "@/lib/supabase/client";
+import { loadSupabase } from "@/lib/supabase/lazy";
 import { PROFILE_COLUMNS, type ProfileRow } from "@/lib/supabase/types";
 import { useAuth } from "@/stores/authStore";
 import { useHistory } from "@/stores/historyStore";
@@ -21,12 +21,15 @@ export function AuthProvider() {
   const syncedFor = useRef<string | null>(null);
 
   useEffect(() => {
-    const supabase = getBrowserSupabase();
-    const set = useAuth.getState().set;
-    if (!supabase) {
-      set({ status: "disabled" });
-      return;
-    }
+    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
+    void loadSupabase().then((supabase) => {
+      if (cancelled) return;
+      const set = useAuth.getState().set;
+      if (!supabase) {
+        set({ status: "disabled" });
+        return;
+      }
 
     const load = async (id: string | null, email: string | null) => {
       if (!id) {
@@ -37,22 +40,30 @@ export function AuthProvider() {
       set({ status: "signedIn", userId: id, email, profile: data ?? null });
     };
 
-    void supabase.auth.getUser().then(({ data }) => load(data.user?.id ?? null, data.user?.email ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        void load(session?.user.id ?? null, session?.user.email ?? null);
-      }
+      // The session in this browser is enough to show who's signed in (no round trip);
+      // every write is checked by the server.
+      void supabase.auth.getSession().then(({ data }) => load(data.session?.user.id ?? null, data.session?.user.email ?? null));
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+          void load(session?.user.id ?? null, session?.user.email ?? null);
+        }
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   // Once signed in (and local data loaded): pull lesson progress, push guest progress.
   useEffect(() => {
     if (!ready || !userId || syncedFor.current === userId) return;
     syncedFor.current = userId;
-    const supabase = getBrowserSupabase();
-    if (!supabase) return;
+    void loadSupabase().then((supabase) => supabase && syncFor(supabase));
+  }, [ready, userId]);
 
+  function syncFor(supabase: NonNullable<Awaited<ReturnType<typeof loadSupabase>>>) {
     void supabase
       .from("lessons_progress")
       .select("lesson_id, stars, best_wpm, best_accuracy, attempts")
@@ -61,7 +72,7 @@ export function AuthProvider() {
       });
 
     const runs = useHistory.getState().unsynced;
-    const lessons = Object.values(useLessons.getState().unsynced).map(({ lessonId, seed, log }) => ({ lessonId, seed, log }));
+    const lessons = Object.values(useLessons.getState().unsynced).map(({ lessonId, seed, layout, log }) => ({ lessonId, seed, layout, log }));
     if (runs.length === 0 && lessons.length === 0) return;
 
     void syncGuestProgress({ runs, lessons }).then((r) => {
@@ -80,18 +91,23 @@ export function AuthProvider() {
         });
       }
     });
-  }, [ready, userId]);
+  }
 
   // Remember the chosen theme on the profile (used later for public profile styling).
   const themeId = useSettings((s) => s.themeId);
   const profileTheme = useAuth((s) => s.profile?.selected_theme);
   useEffect(() => {
     if (!ready || !userId || !profileTheme || profileTheme === themeId) return;
-    const supabase = getBrowserSupabase();
-    void supabase?.from("profiles").update({ selected_theme: themeId }).eq("id", userId).then(({ error }) => {
-      const { profile, set } = useAuth.getState();
-      if (!error && profile) set({ profile: { ...profile, selected_theme: themeId } });
-    });
+    void loadSupabase().then((supabase) =>
+      supabase
+        ?.from("profiles")
+        .update({ selected_theme: themeId })
+        .eq("id", userId)
+        .then(({ error }) => {
+          const { profile, set } = useAuth.getState();
+          if (!error && profile) set({ profile: { ...profile, selected_theme: themeId } });
+        }),
+    );
   }, [ready, userId, themeId, profileTheme]);
 
   return null;

@@ -86,6 +86,29 @@ export const practicePayload = z.object({
 });
 export type PracticePayload = z.infer<typeof practicePayload>;
 
+/** Settings both players use in a friend challenge. */
+export const friendChallengeSettings = z.object({
+  mode: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("time"), seconds: z.union([z.literal(15), z.literal(30), z.literal(60)]) }),
+    z.object({ kind: z.literal("words"), count: z.union([z.literal(25), z.literal(50)]) }),
+  ]),
+  punctuation: z.boolean(),
+  numbers: z.boolean(),
+});
+export type FriendChallengeSettings = z.infer<typeof friendChallengeSettings>;
+
+export const createFriendChallengePayload = z.object({
+  opponentId: z.string().uuid(),
+  settings: friendChallengeSettings,
+  seed: z.number().int().nonnegative().max(2 ** 31),
+  log: z.array(keystroke).min(1).max(MAX_LOG),
+});
+export type CreateFriendChallengePayload = z.infer<typeof createFriendChallengePayload>;
+
+export const playFriendChallengePayload = z.object({
+  log: z.array(keystroke).min(1).max(MAX_LOG),
+});
+
 export interface StreakInfo {
   streak: number;
   bestStreak: number;

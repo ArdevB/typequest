@@ -135,6 +135,23 @@ Database: run `supabase/migrations/20261016050000_chaos_practice.sql` (chaos run
 - **Online practice**: `/api/practice` rebuilds the drill (`src/practice/drills.ts`), replays it, merges the key
   stats into the account and gives a little XP.
 
+## Friends & speed
+
+Database: run `supabase/migrations/20261016060000_friends.sql`.
+
+- **Friends** (`/friends`): add players by username, accept/decline requests, see each friend's level, XP
+  progress, rank, best WPM and streak. Profiles get an "Add friend" / "Challenge" button. Friend RPCs act as
+  `auth.uid()` (no direct table writes; RLS shows you only your own rows).
+- **Friend challenges**: you type first (any of 15/30/60s or 25/50 words, optional punctuation/numbers), your friend
+  gets the same seed — the exact same words — and has 7 days. Both runs are replayed on the server
+  (`/api/friends/challenges`), count as normal speed tests, and the winner gets +30 XP. A red badge in the header
+  shows requests and challenges waiting for you.
+- **Speed**: the proxy no longer calls Supabase Auth on every page (it verifies the token locally with
+  `getClaims()` and skips API routes and audio), pages read the user the same way, the Supabase library and zod
+  are no longer part of every page's first load, `/play` is static (scores load in the browser), and every
+  page that needs server data shows an instant loading skeleton. Run `npm run build && npm start` to see real
+  speed — `npm run dev` compiles each page the first time you open it.
+
 ## Ideas queued for later phases
 
 - Deploy to Vercel (env vars, Supabase auth redirect URLs, the daily-challenge cron).

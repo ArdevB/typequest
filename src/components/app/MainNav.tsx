@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useFriends } from "@/stores/friendsStore";
 
 export const NAV = [
   { href: "/test", label: "test" },
@@ -11,6 +12,7 @@ export const NAV = [
   { href: "/challenges", label: "challenges" },
   { href: "/play", label: "play" },
   { href: "/chaos", label: "chaos" },
+  { href: "/friends", label: "friends" },
   { href: "/leaderboard", label: "leaderboard" },
 ] as const;
 
@@ -18,11 +20,13 @@ const isActive = (path: string, href: string) => path === href || path.startsWit
 
 export function MainNav() {
   const path = usePathname();
+  const pending = useFriends((s) => s.pending);
   return (
     <nav className="hidden items-center gap-4 text-sm lg:flex" aria-label="Main">
       {NAV.map((n) => (
         <Link key={n.href} href={n.href} aria-current={isActive(path, n.href) ? "page" : undefined} className="tq-nav-link">
           {n.label}
+          {n.href === "/friends" && pending > 0 && <span className="tq-nav-dot" aria-label={`${pending} waiting`} />}
         </Link>
       ))}
     </nav>

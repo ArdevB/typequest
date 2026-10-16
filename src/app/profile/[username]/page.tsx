@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FriendButton } from "@/components/friends/FriendButton";
 import { notFound } from "next/navigation";
 import { VirtualKeyboard } from "@/components/keyboard/VirtualKeyboard";
 import { AchievementGrid } from "@/components/profile/AchievementGrid";
@@ -102,10 +103,17 @@ export default async function ProfilePage({ params }: Params) {
           </div>
           <LevelBar xp={profile.xp} className="mt-3 max-w-md" />
         </div>
-        {isOwner && (
-          <Link href="/settings" className="tq-btn py-1.5 text-sm">
-            Edit profile
-          </Link>
+        {isOwner ? (
+          <div className="flex gap-2">
+            <Link href="/friends" className="tq-btn py-1.5 text-sm">
+              Friends
+            </Link>
+            <Link href="/settings" className="tq-btn py-1.5 text-sm">
+              Edit profile
+            </Link>
+          </div>
+        ) : (
+          <FriendButton userId={profile.id} username={profile.username} />
         )}
       </header>
 

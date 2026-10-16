@@ -1,4 +1,4 @@
-import type { ChaosPayload, ChallengePayload, GamePayload, PracticePayload, LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
+import type { CreateFriendChallengePayload, ChaosPayload, ChallengePayload, GamePayload, PracticePayload, LessonPayload, ProgressResponse, RunPayload, SyncPayload } from "@/lib/payloads";
 import type { SaveState } from "@/components/progress/ProgressStrip";
 import { useAuth } from "@/stores/authStore";
 import { toast } from "@/stores/toastStore";
@@ -77,6 +77,18 @@ export async function saveChaos(payload: ChaosPayload): Promise<SaveResult> {
 
 export async function savePractice(payload: PracticePayload): Promise<SaveResult> {
   const r = await post<ProgressResponse>("/api/practice", payload);
+  if (r.ok) applyProgress(r.data);
+  return r;
+}
+
+export async function sendFriendChallenge(payload: CreateFriendChallengePayload) {
+  const r = await post<ProgressResponse & { challengeId: string }>("/api/friends/challenges", payload);
+  if (r.ok) applyProgress(r.data);
+  return r;
+}
+
+export async function playFriendChallenge(id: string, log: CreateFriendChallengePayload["log"]) {
+  const r = await post<ProgressResponse & { winner: string | null; challengerWpm: number }>(`/api/friends/challenges/${id}`, { log });
   if (r.ok) applyProgress(r.data);
   return r;
 }

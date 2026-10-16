@@ -8,7 +8,7 @@ dropdb --if-exists "$DB" >/dev/null 2>&1 || true
 createdb "$DB"
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/stub-supabase.sql
 for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f"; done
-for t in supabase/tests/policies.sql supabase/tests/challenges.sql supabase/tests/games.sql supabase/tests/chaos.sql; do
+for t in supabase/tests/policies.sql supabase/tests/challenges.sql supabase/tests/games.sql supabase/tests/chaos.sql supabase/tests/friends.sql; do
   echo "== $t"
   psql -d "$DB" -f "$t"
 done

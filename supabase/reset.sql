@@ -4,6 +4,20 @@
 --
 -- After running this, run the files in supabase/migrations again, in order.
 
+-- Friends
+drop function if exists public.send_friend_request(text);
+drop function if exists public.respond_friend_request(uuid, boolean);
+drop function if exists public.remove_friend(uuid);
+drop function if exists public.my_friends();
+drop function if exists public.friend_status(uuid);
+drop function if exists public.create_friend_challenge(uuid, uuid, jsonb, bigint, numeric, numeric, jsonb);
+drop function if exists public.complete_friend_challenge(uuid, uuid, numeric, numeric, jsonb, integer);
+drop function if exists public.decline_friend_challenge(uuid);
+drop function if exists public.my_friend_challenges(integer);
+drop function if exists public.are_friends(uuid, uuid);
+drop table if exists public.friend_challenges cascade;
+drop table if exists public.friendships cascade;
+
 -- Phase 7
 drop function if exists public.record_chaos(uuid, jsonb, integer);
 drop function if exists public.chaos_leaderboard(integer);

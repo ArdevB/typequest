@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/app/SiteHeader";
 import { AuthProvider } from "@/components/app/AuthProvider";
 import { StoreHydrator } from "@/components/app/StoreHydrator";
 import { UnlockWatcher } from "@/components/app/UnlockWatcher";
+import { FriendsWatcher } from "@/components/app/FriendsWatcher";
 import { Toaster } from "@/components/ui/Toaster";
 import { PREPAINT_SCRIPT } from "@/lib/prepaint";
 import { DEFAULT_THEME, themeCss } from "@/themes/registry";
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <StoreHydrator />
         <UnlockWatcher />
+        <FriendsWatcher />
         <AuthProvider />
         <SiteHeader />
         <main id="main" className="flex w-full flex-1 flex-col px-4 pb-10 sm:px-6">

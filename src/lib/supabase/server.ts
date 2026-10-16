@@ -25,9 +25,15 @@ export async function getServerSupabase(): Promise<SupabaseClient | null> {
   });
 }
 
-/** The signed-in user's id, or null. Verified with Supabase Auth (not just decoded from the cookie). */
+/**
+ * The signed-in user's id, or null. The token's signature is verified
+ * (getClaims), locally when the project uses asymmetric signing keys, so pages
+ * don't wait on a call to Supabase Auth. Writes still go through API routes that
+ * check the user with Supabase Auth itself.
+ */
 export async function getUserId(supabase: SupabaseClient | null): Promise<string | null> {
   if (!supabase) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+  const { data } = await supabase.auth.getClaims();
+  const sub = data?.claims?.sub;
+  return typeof sub === "string" ? sub : null;
 }

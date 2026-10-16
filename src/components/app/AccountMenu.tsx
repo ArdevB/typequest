@@ -6,13 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LevelBadge } from "@/components/progress/RankBadge";
 import { StreakBadge } from "@/components/progress/StreakBadge";
-import { getBrowserSupabase } from "@/lib/supabase/client";
+import { loadSupabase } from "@/lib/supabase/lazy";
 import { useAuth } from "@/stores/authStore";
+import { useFriends } from "@/stores/friendsStore";
 
 /** Header account control: "Sign in", or the player's level + name with a small menu. */
 export function AccountMenu() {
   const status = useAuth((s) => s.status);
   const profile = useAuth((s) => s.profile);
+  const pending = useFriends((s) => s.pending);
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -44,7 +46,7 @@ export function AccountMenu() {
   }
 
   const signOut = async () => {
-    await getBrowserSupabase()?.auth.signOut();
+    await (await loadSupabase())?.auth.signOut();
     setOpen(false);
     router.refresh();
   };
@@ -61,6 +63,11 @@ export function AccountMenu() {
         {profile && <StreakBadge profile={profile} className="mr-1" />}
         <LevelBadge level={profile?.level ?? 1} size={26} />
         <span className="max-w-28 truncate">{profile?.username ?? "Account"}</span>
+        {pending > 0 && (
+          <span className="tq-badge" aria-label={`${pending} waiting for you`}>
+            {pending}
+          </span>
+        )}
       </button>
       <AnimatePresence>
         {open && (
@@ -77,6 +84,10 @@ export function AccountMenu() {
                 Profile
               </Link>
             )}
+            <Link role="menuitem" href="/friends" className="flex items-center justify-between px-4 py-2 text-sm text-text hover:bg-bg-alt">
+              Friends
+              {pending > 0 && <span className="tq-badge">{pending}</span>}
+            </Link>
             <Link role="menuitem" href="/challenges" className="block px-4 py-2 text-sm text-text hover:bg-bg-alt">
               Challenges
             </Link>

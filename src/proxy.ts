@@ -22,11 +22,13 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  // Do not remove: this call refreshes an expired session.
-  await supabase.auth.getUser();
+  // Do not remove: refreshes an expired session. getClaims() verifies the token locally
+  // (no round trip to Supabase on every page, unless the token needs refreshing).
+  await supabase.auth.getClaims();
   return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|sounds/|icon.svg|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|wav|mp3)$).*)"],
+  // Skip static files, audio and API routes (API routes check the session themselves).
+  matcher: ["/((?!_next/static|_next/image|api/|sounds/|music/|icon.svg|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|wav|mp3|ogg|woff2?)$).*)"],
 };

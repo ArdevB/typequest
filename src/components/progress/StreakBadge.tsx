@@ -1,4 +1,4 @@
-import { nepalDay } from "@/challenges/daily";
+import { nepalDay } from "@/lib/nepalTime";
 
 export interface StreakFields {
   streak: number;

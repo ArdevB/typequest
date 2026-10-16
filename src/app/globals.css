@@ -1394,3 +1394,64 @@ html[data-rm="true"] .tq-chaos .tq-word {
 html[data-rm="true"] .tq-path-card:hover {
   transform: none;
 }
+
+/* ---------- Loading states ---------- */
+.tq-skel {
+  border-radius: 0.9rem;
+  background: linear-gradient(90deg, var(--surface) 25%, color-mix(in srgb, var(--surface) 70%, var(--border)) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: tq-shimmer 1.2s ease-in-out infinite;
+}
+.tq-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 40%;
+  z-index: 100;
+  background: linear-gradient(90deg, transparent, var(--main), var(--caret));
+  animation: tq-loading 0.9s ease-in-out infinite;
+}
+@keyframes tq-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes tq-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+html[data-rm="true"] .tq-skel,
+html[data-rm="true"] .tq-loading-bar {
+  animation: none;
+}
+.tq-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.tq-nav-dot {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--error);
+}
+.tq-challenge-card {
+  border-color: color-mix(in srgb, var(--main) 50%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--main) 12%, var(--surface)), var(--surface));
+}
